@@ -1,0 +1,58 @@
+# Brain Training Backend - Docker Compose
+# Author: Jay "The Ermite" Goncalves
+# Copyright: Jay The Ermite
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: brain-training-db
+    environment:
+      POSTGRES_USER: brain_training
+      POSTGRES_PASSWORD: changeme
+      POSTGRES_DB: brain_training
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U brain_training"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend
+  backend:
+    build: .
+    container_name: brain-training-api
+    environment:
+      DATABASE_URL: postgresql://brain_training:changeme@postgres:5432/brain_training
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: brain_training
+      DATABASE_USER: brain_training
+      DATABASE_PASSWORD: changeme
+      API_TITLE: Brain Training API
+      API_VERSION: 1.0.0
+      API_PREFIX: /api/v1
+      CORS_ORIGINS: http://localhost:3000,http://localhost:5173
+      SECRET_KEY: changeme_generate_secure_secret_key_here
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      ENVIRONMENT: development
+      DEBUG: "true"
+      LOG_LEVEL: INFO
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  postgres_data:
