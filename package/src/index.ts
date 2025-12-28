@@ -14,12 +14,13 @@ export { PatternRecall } from './components/PatternRecall'
 export { SequenceMemory } from './components/SequenceMemory'
 export { ImagePairs } from './components/ImagePairs'
 export { BreathingExercise } from './components/BreathingExercise'
+export { ReactionTime } from './components/ReactionTime'
+export { PeripheralVision } from './components/PeripheralVision'
+export { MultiTask } from './components/MultiTask'
 
 // Types
 export type {
   // Memory Exercises
-  MemoryExerciseType,
-  DifficultyLevel,
   MemoryExerciseConfig,
   MemoryExerciseSession,
   ScoreBreakdown,
@@ -67,8 +68,6 @@ export {
   getThemeClasses,
   mergeThemeClasses,
 } from './themes'
-
-export type { Theme, ThemeVariant } from './types'
 
 // API Client
 export {
