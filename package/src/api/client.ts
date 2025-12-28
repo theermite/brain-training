@@ -47,9 +47,9 @@ export class BrainTrainingAPIClient {
     options: RequestInit = {}
   ): Promise<APIResponse<T>> {
     try {
-      const headers: HeadersInit = {
+      const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        ...options.headers,
+        ...(options.headers as Record<string, string>),
       }
 
       if (this.authToken) {

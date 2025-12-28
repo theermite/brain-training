@@ -9,14 +9,6 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { PatternCell, MemoryExerciseProps } from '../types'
 import { resolveTheme, getThemeClasses, mergeThemeClasses } from '../themes'
 
-interface GameStats {
-  total_moves: number
-  correct_moves: number
-  incorrect_moves: number
-  time_elapsed_ms: number
-  completed: boolean
-}
-
 enum GamePhase {
   READY = 'ready',
   MEMORIZE = 'memorize',
@@ -30,7 +22,7 @@ export function PatternRecall({
   className,
   theme,
   onComplete,
-  onProgress,
+  onProgress: _onProgress,
 }: MemoryExerciseProps) {
   const rows = config.grid_rows || 4
   const cols = config.grid_cols || 4
@@ -53,7 +45,8 @@ export function PatternRecall({
   const [startTime, setStartTime] = useState<number>(0)
   const [totalMoves, setTotalMoves] = useState<number>(0)
   const [correctMoves, setCorrectMoves] = useState<number>(0)
-  const [incorrectMoves, setIncorrectMoves] = useState<number>(0)
+  const [_incorrectMoves, _setIncorrectMoves] = useState<number>(0)
+  const [selectedCell, setSelectedCell] = useState<{row: number, col: number} | null>(null)
 
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const phaseTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -161,21 +154,29 @@ export function PatternRecall({
     }, 100)
   }
 
-  const handleCellClick = (row: number, col: number, selectedColor: string) => {
+  const handleCellSelect = (row: number, col: number) => {
     if (phase !== GamePhase.RECALL) return
+    setSelectedCell({ row, col })
+  }
+
+  const handleColorSelect = (color: string) => {
+    if (phase !== GamePhase.RECALL || !selectedCell) return
 
     setUserPattern((prev) =>
       prev.map((cell) =>
-        cell.row === row && cell.col === col
+        cell.row === selectedCell.row && cell.col === selectedCell.col
           ? {
               ...cell,
-              color: selectedColor,
+              color,
               isActive: true,
               isRevealed: true,
             }
           : cell
       )
     )
+
+    // Clear selection after assigning color
+    setSelectedCell(null)
   }
 
   const handleCellClear = (row: number, col: number) => {
@@ -188,6 +189,9 @@ export function PatternRecall({
           : cell
       )
     )
+    if (selectedCell && selectedCell.row === row && selectedCell.col === col) {
+      setSelectedCell(null)
+    }
   }
 
   const submitPattern = () => {
@@ -211,7 +215,7 @@ export function PatternRecall({
     })
 
     setCorrectMoves(correct)
-    setIncorrectMoves(incorrect)
+    _setIncorrectMoves(incorrect)
     setTotalMoves(rows * cols)
 
     // Show feedback
@@ -340,13 +344,16 @@ export function PatternRecall({
                           pattern[index].color === userPattern[index].color)
                         ? '3px solid #10B981'
                         : '3px solid #EF4444'
+                      : phase === GamePhase.RECALL &&
+                        selectedCell &&
+                        selectedCell.row === cell.row &&
+                        selectedCell.col === cell.col
+                      ? '4px solid #3B82F6'
                       : 'none',
                 }}
                 onClick={() => {
                   if (phase === GamePhase.RECALL) {
-                    if (cell.isActive) {
-                      handleCellClear(cell.row, cell.col)
-                    }
+                    handleCellSelect(cell.row, cell.col)
                   }
                 }}
               >
@@ -371,21 +378,18 @@ export function PatternRecall({
       {phase === GamePhase.RECALL && (
         <div className={`mt-4 p-4 ${themeClasses.bgSecondary} ${themeClasses.borderRadius} ${themeClasses.shadow}`}>
           <p className={`text-sm text-center mb-2 ${themeClasses.textSecondary}`}>
-            Touche une cellule puis choisis sa couleur :
+            {selectedCell
+              ? 'Choisis la couleur pour la cellule sélectionnée :'
+              : 'Touche une cellule puis choisis sa couleur :'}
           </p>
           <div className="flex justify-center gap-2 flex-wrap">
             {colors.map((color) => (
               <button
                 key={color}
-                className={`w-12 h-12 sm:w-14 sm:h-14 ${themeClasses.borderRadius} ${themeClasses.shadow} hover:scale-110 active:scale-95 transition-transform touch-manipulation`}
+                className={`w-12 h-12 sm:w-14 sm:h-14 ${themeClasses.borderRadius} ${themeClasses.shadow} hover:scale-110 active:scale-95 transition-transform touch-manipulation ${!selectedCell ? 'opacity-50 cursor-not-allowed' : ''}`}
                 style={{ backgroundColor: color }}
-                onClick={() => {
-                  // Find first non-active cell
-                  const nextCell = userPattern.find((c) => !c.isActive)
-                  if (nextCell) {
-                    handleCellClick(nextCell.row, nextCell.col, color)
-                  }
-                }}
+                disabled={!selectedCell}
+                onClick={() => handleColorSelect(color)}
               />
             ))}
           </div>

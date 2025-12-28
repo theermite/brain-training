@@ -7,6 +7,11 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 5173,
-    allowedHosts: ['all'], // Allow CloudFlare tunnel and any proxy
+    allowedHosts: [
+      'localhost',
+      '217.182.206.127',
+      'brain-training.theermite.com',
+      '.trycloudflare.com', // CloudFlare tunnel wildcard
+    ],
   },
 })

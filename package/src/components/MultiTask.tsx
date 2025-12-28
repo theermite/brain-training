@@ -47,6 +47,7 @@ export function MultiTask({
   const [isPlaying, setIsPlaying] = useState(false)
   const [timeLeft, setTimeLeft] = useState(duration)
   const [activeTasks, setActiveTasks] = useState<Task[]>([])
+  const [selectedDifficulty, setSelectedDifficulty] = useState<'easy' | 'medium' | 'hard'>(difficulty)
   const [gameStats, setGameStats] = useState<GameStats>({
     tasksCompleted: 0,
     tasksFailed: 0,
@@ -61,9 +62,9 @@ export function MultiTask({
   const currentTheme = resolveTheme(theme)
   const themeClasses = getThemeClasses(currentTheme)
 
-  const maxConcurrentTasks = difficulty === 'easy' ? 1 : difficulty === 'medium' ? 2 : 3
-  const taskInterval = difficulty === 'easy' ? 4000 : difficulty === 'medium' ? 3000 : 2000
-  const taskDuration = difficulty === 'easy' ? 8000 : difficulty === 'medium' ? 6000 : 4000
+  const maxConcurrentTasks = selectedDifficulty === 'easy' ? 1 : selectedDifficulty === 'medium' ? 2 : 3
+  const taskInterval = selectedDifficulty === 'easy' ? 4000 : selectedDifficulty === 'medium' ? 3000 : 2000
+  const taskDuration = selectedDifficulty === 'easy' ? 8000 : selectedDifficulty === 'medium' ? 6000 : 4000
 
   // Game timer
   useEffect(() => {
@@ -207,7 +208,7 @@ export function MultiTask({
   }
 
   const generateSequenceTask = (): Task => {
-    const length = difficulty === 'easy' ? 3 : difficulty === 'medium' ? 4 : 5
+    const length = selectedDifficulty === 'easy' ? 3 : selectedDifficulty === 'medium' ? 4 : 5
     const numbers = Array.from({ length }, () => Math.floor(Math.random() * 9) + 1)
     const sequence = numbers.join(' → ')
     const correctAnswer = numbers[numbers.length - 1].toString()
@@ -364,10 +365,59 @@ export function MultiTask({
               <br />
               Réponds correctement avant que le temps s'écoule !
             </p>
-            <div className={`${themeClasses.bgCard} ${themeClasses.borderRadius} p-4 mb-4 text-sm ${themeClasses.textSecondary}`}>
-              <p className="mb-2">
-                <strong>Difficulté :</strong> {difficulty === 'easy' ? 'Facile (1 tâche)' : difficulty === 'medium' ? 'Moyen (2 tâches)' : 'Difficile (3 tâches)'}
+
+            {/* Difficulty Selector */}
+            <div className={`${themeClasses.bgCard} ${themeClasses.borderRadius} p-4 mb-4`}>
+              <p className={`text-center mb-3 font-semibold ${themeClasses.textMain}`}>
+                Choisis ton niveau de difficulté :
               </p>
+              <div className="grid grid-cols-3 gap-3">
+                <button
+                  onClick={() => setSelectedDifficulty('easy')}
+                  className={`
+                    px-4 py-3 ${themeClasses.borderRadius} font-semibold transition-all
+                    ${
+                      selectedDifficulty === 'easy'
+                        ? `${themeClasses.bgSuccess} text-white scale-105`
+                        : `${themeClasses.bgCard} ${themeClasses.bgCardHover} ${themeClasses.border} border`
+                    }
+                  `}
+                >
+                  😊 Facile
+                  <div className="text-xs opacity-70 mt-1">1 tâche</div>
+                </button>
+                <button
+                  onClick={() => setSelectedDifficulty('medium')}
+                  className={`
+                    px-4 py-3 ${themeClasses.borderRadius} font-semibold transition-all
+                    ${
+                      selectedDifficulty === 'medium'
+                        ? `${themeClasses.bgPrimary} text-white scale-105`
+                        : `${themeClasses.bgCard} ${themeClasses.bgCardHover} ${themeClasses.border} border`
+                    }
+                  `}
+                >
+                  😎 Moyen
+                  <div className="text-xs opacity-70 mt-1">2 tâches</div>
+                </button>
+                <button
+                  onClick={() => setSelectedDifficulty('hard')}
+                  className={`
+                    px-4 py-3 ${themeClasses.borderRadius} font-semibold transition-all
+                    ${
+                      selectedDifficulty === 'hard'
+                        ? `${themeClasses.bgError} text-white scale-105`
+                        : `${themeClasses.bgCard} ${themeClasses.bgCardHover} ${themeClasses.border} border`
+                    }
+                  `}
+                >
+                  🔥 Difficile
+                  <div className="text-xs opacity-70 mt-1">3 tâches</div>
+                </button>
+              </div>
+            </div>
+
+            <div className={`${themeClasses.bgCard} ${themeClasses.borderRadius} p-4 text-sm ${themeClasses.textSecondary}`}>
               <p>+25 pts correct | -10 pts erreur | -15 pts timeout</p>
             </div>
           </div>

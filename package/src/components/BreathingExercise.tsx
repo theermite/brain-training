@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react'
-import { Volume2, VolumeX, Play, Pause, X } from 'lucide-react'
+import { Volume2, VolumeX, Play, Pause } from 'lucide-react'
 import { BreathingExerciseProps, BreathPhase, BreathingPattern } from '../types'
 import { resolveTheme, getThemeClasses, mergeThemeClasses } from '../themes'
 

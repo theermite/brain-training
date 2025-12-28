@@ -9,15 +9,6 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { MemoryExerciseProps } from '../types'
 import { resolveTheme, getThemeClasses, mergeThemeClasses } from '../themes'
 
-interface GameStats {
-  total_moves: number
-  correct_moves: number
-  incorrect_moves: number
-  time_elapsed_ms: number
-  max_sequence_reached: number
-  completed: boolean
-}
-
 enum GamePhase {
   READY = 'ready',
   SHOWING = 'showing',
@@ -315,12 +306,12 @@ export function SequenceMemory({
               onClick={() => handleCellClick(cell.id)}
               disabled={phase !== GamePhase.WAITING}
               className={`
-                relative aspect-square ${themeClasses.borderRadius} ${themeClasses.shadow}
+                relative aspect-square ${themeClasses.borderRadius}
                 transition-all duration-200
                 ${
                   activeCell === cell.id
-                    ? 'bg-gradient-to-br from-yellow-400 to-orange-500 scale-95 shadow-2xl'
-                    : `bg-gradient-to-br ${themeClasses.bgAccent}`
+                    ? 'bg-white scale-110 shadow-[0_0_30px_rgba(255,255,255,0.8)] animate-pulse ring-4 ring-white'
+                    : `bg-gradient-to-br ${themeClasses.bgAccent} ${themeClasses.shadow}`
                 }
                 ${
                   phase === GamePhase.WAITING

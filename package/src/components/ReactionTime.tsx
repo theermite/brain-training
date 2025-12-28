@@ -10,6 +10,7 @@ import { resolveTheme, getThemeClasses, mergeThemeClasses } from '../themes'
 import { ExerciseBaseProps } from '../types'
 
 type GamePhase = 'idle' | 'waiting' | 'ready' | 'tooEarly' | 'result'
+type Difficulty = 'easy' | 'medium' | 'hard'
 
 interface ReactionResult {
   reactionTime: number
@@ -26,14 +27,10 @@ interface GameStats {
 
 export interface ReactionTimeProps extends ExerciseBaseProps {
   totalAttempts?: number
-  minDelay?: number
-  maxDelay?: number
 }
 
 export function ReactionTime({
   totalAttempts = 5,
-  minDelay = 1500,
-  maxDelay = 4000,
   className,
   theme,
   onComplete,
@@ -41,6 +38,7 @@ export function ReactionTime({
 }: ReactionTimeProps) {
   const [gamePhase, setGamePhase] = useState<GamePhase>('idle')
   const [currentAttempt, setCurrentAttempt] = useState(0)
+  const [difficulty, setDifficulty] = useState<Difficulty>('medium')
   const [gameStats, setGameStats] = useState<GameStats>({
     attempts: [],
     averageTime: 0,
@@ -62,6 +60,17 @@ export function ReactionTime({
       }
     }
   }, [])
+
+  const getDifficultyDelays = (): { min: number; max: number } => {
+    switch (difficulty) {
+      case 'easy':
+        return { min: 2000, max: 5000 }
+      case 'medium':
+        return { min: 1500, max: 4000 }
+      case 'hard':
+        return { min: 1000, max: 3000 }
+    }
+  }
 
   const calculateStats = (attempts: ReactionResult[]): GameStats => {
     if (attempts.length === 0) {
@@ -97,7 +106,8 @@ export function ReactionTime({
     }
 
     setGamePhase('waiting')
-    const delay = Math.random() * (maxDelay - minDelay) + minDelay
+    const delays = getDifficultyDelays()
+    const delay = Math.random() * (delays.max - delays.min) + delays.min
 
     timeoutRef.current = setTimeout(() => {
       setGamePhase('ready')
@@ -196,19 +206,72 @@ export function ReactionTime({
         </p>
       </div>
 
+      {/* Difficulty Selector */}
+      {gamePhase === 'idle' && (
+        <div className={`${themeClasses.bgSecondary} ${themeClasses.borderRadius} p-4 mb-6`}>
+          <p className={`text-center mb-3 font-semibold ${themeClasses.textMain}`}>
+            Choisis ton niveau de difficulté :
+          </p>
+          <div className="grid grid-cols-3 gap-3">
+            <button
+              onClick={() => setDifficulty('easy')}
+              className={`
+                px-4 py-3 ${themeClasses.borderRadius} font-semibold transition-all
+                ${
+                  difficulty === 'easy'
+                    ? `${themeClasses.bgSuccess} text-white scale-105`
+                    : `${themeClasses.bgCard} ${themeClasses.bgCardHover} ${themeClasses.border} border`
+                }
+              `}
+            >
+              😊 Facile
+              <div className="text-xs opacity-70 mt-1">2-5s</div>
+            </button>
+            <button
+              onClick={() => setDifficulty('medium')}
+              className={`
+                px-4 py-3 ${themeClasses.borderRadius} font-semibold transition-all
+                ${
+                  difficulty === 'medium'
+                    ? `${themeClasses.bgPrimary} text-white scale-105`
+                    : `${themeClasses.bgCard} ${themeClasses.bgCardHover} ${themeClasses.border} border`
+                }
+              `}
+            >
+              😎 Moyen
+              <div className="text-xs opacity-70 mt-1">1.5-4s</div>
+            </button>
+            <button
+              onClick={() => setDifficulty('hard')}
+              className={`
+                px-4 py-3 ${themeClasses.borderRadius} font-semibold transition-all
+                ${
+                  difficulty === 'hard'
+                    ? `${themeClasses.bgError} text-white scale-105`
+                    : `${themeClasses.bgCard} ${themeClasses.bgCardHover} ${themeClasses.border} border`
+                }
+              `}
+            >
+              🔥 Difficile
+              <div className="text-xs opacity-70 mt-1">1-3s</div>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Reaction Area */}
       <div className="flex-1 flex items-center justify-center mb-6">
         <button
           onClick={handleClick}
           disabled={gamePhase === 'result'}
           className={`
-            w-full max-w-2xl aspect-square ${themeClasses.borderRadius}
+            w-full max-w-md aspect-square ${themeClasses.borderRadius}
             ${getPhaseColor()}
             transition-all duration-200 transform
             ${gamePhase !== 'result' ? 'hover:scale-105 active:scale-95' : ''}
             touch-manipulation select-none
             flex items-center justify-center
-            text-2xl sm:text-4xl font-bold
+            text-xl sm:text-3xl font-bold
           `}
         >
           {getPhaseText()}

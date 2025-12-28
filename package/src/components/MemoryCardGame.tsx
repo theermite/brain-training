@@ -31,6 +31,7 @@ export function MemoryCardGame({
   onComplete,
   onProgress,
 }: MemoryExerciseProps) {
+  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium')
   const [cards, setCards] = useState<CardType[]>([])
   const [flippedCards, setFlippedCards] = useState<number[]>([])
   const [matchedPairs, setMatchedPairs] = useState<number>(0)
@@ -45,8 +46,18 @@ export function MemoryCardGame({
 
   const timerRef = useRef<NodeJS.Timeout | null>(null)
 
-  const rows = config.grid_rows || 4
-  const cols = config.grid_cols || 4
+  const getDifficultyGrid = (): { rows: number; cols: number } => {
+    switch (difficulty) {
+      case 'easy':
+        return { rows: 2, cols: 3 }
+      case 'medium':
+        return { rows: 4, cols: 4 }
+      case 'hard':
+        return { rows: 4, cols: 5 }
+    }
+  }
+
+  const { rows, cols } = getDifficultyGrid()
   const totalPairs = (rows * cols) / 2
 
   // Resolve theme
@@ -59,7 +70,7 @@ export function MemoryCardGame({
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
     }
-  }, [config])
+  }, [difficulty])
 
   // Timer
   useEffect(() => {
@@ -235,6 +246,59 @@ export function MemoryCardGame({
 
   return (
     <div className={mergeThemeClasses(`h-full flex flex-col ${themeClasses.bgMain} ${themeClasses.textMain}`, className)}>
+      {/* Difficulty Selector */}
+      {!gameStarted && (
+        <div className={`${themeClasses.bgSecondary} ${themeClasses.borderRadius} p-4 mb-4`}>
+          <p className={`text-center mb-3 font-semibold ${themeClasses.textMain}`}>
+            Choisis ton niveau de difficulté :
+          </p>
+          <div className="grid grid-cols-3 gap-3">
+            <button
+              onClick={() => setDifficulty('easy')}
+              className={`
+                px-4 py-3 ${themeClasses.borderRadius} font-semibold transition-all
+                ${
+                  difficulty === 'easy'
+                    ? `${themeClasses.bgSuccess} text-white scale-105`
+                    : `${themeClasses.bgCard} ${themeClasses.bgCardHover} ${themeClasses.border} border`
+                }
+              `}
+            >
+              😊 Facile
+              <div className="text-xs opacity-70 mt-1">3 paires</div>
+            </button>
+            <button
+              onClick={() => setDifficulty('medium')}
+              className={`
+                px-4 py-3 ${themeClasses.borderRadius} font-semibold transition-all
+                ${
+                  difficulty === 'medium'
+                    ? `${themeClasses.bgPrimary} text-white scale-105`
+                    : `${themeClasses.bgCard} ${themeClasses.bgCardHover} ${themeClasses.border} border`
+                }
+              `}
+            >
+              😎 Moyen
+              <div className="text-xs opacity-70 mt-1">8 paires</div>
+            </button>
+            <button
+              onClick={() => setDifficulty('hard')}
+              className={`
+                px-4 py-3 ${themeClasses.borderRadius} font-semibold transition-all
+                ${
+                  difficulty === 'hard'
+                    ? `${themeClasses.bgError} text-white scale-105`
+                    : `${themeClasses.bgCard} ${themeClasses.bgCardHover} ${themeClasses.border} border`
+                }
+              `}
+            >
+              🔥 Difficile
+              <div className="text-xs opacity-70 mt-1">10 paires</div>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header Stats - Mobile optimized */}
       <div className={`bg-gradient-to-r ${themeClasses.bgPrimary} ${themeClasses.borderRadius} p-3 sm:p-4 mb-4 ${themeClasses.shadow}`}>
         <div className="grid grid-cols-4 gap-2 text-center">
@@ -328,7 +392,16 @@ export function MemoryCardGame({
       {/* Completion overlay */}
       {gameCompleted && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className={`${themeClasses.bgSecondary} ${themeClasses.borderRadius} p-6 max-w-md w-full text-center shadow-2xl animate-slide-up`}>
+          <div className={`${themeClasses.bgSecondary} ${themeClasses.borderRadius} p-6 max-w-md w-full text-center shadow-2xl animate-slide-up relative`}>
+            {/* Close button */}
+            <button
+              onClick={() => setGameCompleted(false)}
+              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-700 hover:bg-gray-600 text-white transition-colors"
+              aria-label="Fermer"
+            >
+              ✕
+            </button>
+
             <div className="text-6xl mb-4">🎉</div>
             <h3 className="text-2xl font-bold mb-4">Bravo !</h3>
             <div className={`space-y-2 ${themeClasses.textSecondary} mb-6`}>
@@ -336,6 +409,12 @@ export function MemoryCardGame({
               <p><strong>Coups :</strong> {moves}</p>
               <p><strong>Précision :</strong> {accuracy}%</p>
             </div>
+            <button
+              onClick={initializeGame}
+              className={`w-full px-6 py-3 ${themeClasses.bgPrimary} ${themeClasses.bgPrimaryHover} ${themeClasses.borderRadius} font-semibold transition-all`}
+            >
+              🔄 Recommencer
+            </button>
           </div>
         </div>
       )}

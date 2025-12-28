@@ -191,8 +191,6 @@ function App() {
           {activeExercise === 'reaction-time' && (
             <ReactionTime
               totalAttempts={5}
-              minDelay={1500}
-              maxDelay={4000}
               theme="ermite"
               onComplete={(session) => console.log('ReactionTime completed:', session)}
               onProgress={(progress) => console.log('ReactionTime progress:', progress)}
