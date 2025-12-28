@@ -6,8 +6,15 @@
   "license": "UNLICENSED",
   "private": false,
   "main": "dist/index.js",
-  "module": "dist/index.esm.js",
+  "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
   "files": [
     "dist",
     "README.md",
@@ -30,6 +37,7 @@
     "lucide-react": "^0.263.1"
   },
   "devDependencies": {
+    "@types/node": "^25.0.3",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
