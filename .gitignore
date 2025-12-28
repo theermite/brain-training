@@ -1,6 +1,7 @@
 # Dependencies
 node_modules/
 package/node_modules/
+examples/test-demo/node_modules/
 backend/venv/
 backend/__pycache__/
 backend/**/__pycache__/
@@ -9,6 +10,8 @@ backend/**/*.pyc
 # Build outputs
 package/dist/
 package/.tsup/
+build/
+*.tsbuildinfo
 
 # Environment files
 .env
@@ -43,6 +46,19 @@ coverage/
 .coverage
 htmlcov/
 .pytest_cache/
+
+# Vite
+.vite/
+*.local
+
+# Binaries and executables
+*.deb
+*.exe
+*.dmg
+*.app
+*.pkg
+*.tar.gz
+*.zip
 
 # Misc
 .cache/
