@@ -1,0 +1,65 @@
+{
+  "name": "@theermite/brain-training",
+  "version": "1.0.0",
+  "description": "Cognitive exercises library with memory games and breathing exercises - Reusable components for The Ermite platforms",
+  "author": "Jay 'The Ermite' Goncalves",
+  "license": "UNLICENSED",
+  "private": false,
+  "main": "dist/index.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "COPYRIGHT.md"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "test": "jest --coverage",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "dependencies": {
+    "lucide-react": "^0.263.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "autoprefixer": "^10.4.14",
+    "eslint": "^8.45.0",
+    "eslint-plugin-react": "^7.32.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "postcss": "^8.4.27",
+    "tailwindcss": "^3.3.3",
+    "tsup": "^7.1.0",
+    "typescript": "^5.1.6"
+  },
+  "keywords": [
+    "cognitive-exercises",
+    "memory-games",
+    "brain-training",
+    "breathing-exercises",
+    "react",
+    "typescript",
+    "gaming",
+    "esport",
+    "mental-training"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theermite/brain-training.git"
+  },
+  "bugs": {
+    "url": "https://github.com/theermite/brain-training/issues"
+  },
+  "homepage": "https://github.com/theermite/brain-training#readme"
+}
