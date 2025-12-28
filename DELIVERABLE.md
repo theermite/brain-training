@@ -12,12 +12,15 @@
 
 ### ✅ Package NPM Frontend (`/package/`)
 
-**5 Composants React TypeScript**
+**8 Composants React TypeScript**
 1. **MemoryCardGame** - Jeu de paires avec emojis (4x4, 6x6, 8x8)
 2. **PatternRecall** - Mémorisation de motifs colorés (grilles 3x3 à 6x6)
 3. **SequenceMemory** - Séquences style Simon (niveaux 3 à 50)
 4. **ImagePairs** - Associations thématiques gaming (paires question/answer)
 5. **BreathingExercise** - Respiration guidée avec Web Audio API (3 patterns)
+6. **ReactionTime** - Test de temps de réaction avec signal visuel
+7. **PeripheralVision** - Entraînement vision périphérique avec cibles aléatoires
+8. **MultiTask** - Gestion multi-tâches style MOBA (4 types de tâches simultanées)
 
 **Système de Themes**
 - Theme "The Ermite" (émeraude/ambre, sombre)
@@ -183,11 +186,11 @@ function App() {
 
 ---
 
-## 📊 Fichiers Créés (Total: 35)
+## 📊 Fichiers Créés (Total: 38)
 
-### Package (21 fichiers)
+### Package (24 fichiers)
 - `package.json`, `tsconfig.json`, `tailwind.config.js`, `.eslintrc.json`
-- `src/components/` (5 composants)
+- `src/components/` (8 composants)
 - `src/themes/index.ts`
 - `src/api/client.ts`
 - `src/types/index.ts`
@@ -293,7 +296,7 @@ faee187 feat: Initial brain-training package structure
 ## ✨ Résumé Technique
 
 **Package NPM** : @theermite/brain-training v1.0.0
-- 5 exercices (4 mémoire + 1 respiration)
+- 8 exercices (4 mémoire + 3 performance/réflexes + 1 respiration)
 - 3 themes + customisation
 - API client TypeScript
 - Build CJS + ESM + Types
