@@ -106,7 +106,7 @@ export function SkillshotTrainer({
     maxCombo: 0,
     timeAlive: 0,
   })
-  const [_isFullscreen, setIsFullscreen] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
 
   // Refs for game state
   const joystickActiveRef = useRef(false)
@@ -715,6 +715,31 @@ export function SkillshotTrainer({
     }
   }, [])
 
+  const toggleFullscreen = useCallback(async () => {
+    if (!document.fullscreenElement) {
+      try {
+        // Request fullscreen on the container
+        const container = containerRef.current
+        if (container) {
+          await container.requestFullscreen()
+          setIsFullscreen(true)
+          // Try to lock orientation to landscape
+          if (screen.orientation && 'lock' in screen.orientation) {
+            try {
+              await (screen.orientation as any).lock('landscape')
+            } catch (err) {
+              console.warn('Orientation lock not supported:', err)
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Fullscreen request failed:', err)
+      }
+    } else {
+      await exitFullscreen()
+    }
+  }, [exitFullscreen])
+
   // Game loop effect
   useEffect(() => {
     if (gameState === 'playing') {
@@ -748,6 +773,15 @@ export function SkillshotTrainer({
       } as any)
     }
   }, [gameState, stats, difficulty, onComplete])
+
+  // Fullscreen change handler
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement)
+    }
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
+  }, [])
 
   // Joystick handlers
   const handleJoystickStart = useCallback(() => {
@@ -909,12 +943,21 @@ export function SkillshotTrainer({
               </div>
             </div>
 
-            <button
-              onClick={startGame}
-              className={`px-8 py-4 ${themeClasses.bgPrimary} ${themeClasses.bgPrimaryHover} ${themeClasses.borderRadius} font-bold text-lg transition-all`}
-            >
-              🎮 Commencer
-            </button>
+            <div className="space-y-3">
+              <button
+                onClick={toggleFullscreen}
+                className={`w-full max-w-md mx-auto px-4 py-2 ${themeClasses.bgCard} ${themeClasses.bgCardHover} ${themeClasses.borderRadius} ${themeClasses.border} border text-sm transition-all`}
+              >
+                {isFullscreen ? '📱 Quitter le plein écran' : '📱 Mode plein écran (paysage recommandé)'}
+              </button>
+
+              <button
+                onClick={startGame}
+                className={`px-8 py-4 ${themeClasses.bgPrimary} ${themeClasses.bgPrimaryHover} ${themeClasses.borderRadius} font-bold text-lg transition-all`}
+              >
+                🎮 Commencer
+              </button>
+            </div>
 
             <div className={`${themeClasses.bgCard} p-4 rounded-lg text-left max-w-md mx-auto`}>
               <h3 className="font-semibold mb-2 text-emerald-400">📋 Instructions</h3>
@@ -1099,7 +1142,7 @@ export function SkillshotTrainer({
               <button
                 onClick={() => {
                   setGameState('idle')
-                  if (_isFullscreen) {
+                  if (isFullscreen) {
                     exitFullscreen()
                   }
                 }}
@@ -1167,7 +1210,7 @@ export function SkillshotTrainer({
                   🔄 Rejouer
                 </button>
 
-                {_isFullscreen && (
+                {isFullscreen && (
                   <button
                     onClick={exitFullscreen}
                     className={`px-6 py-2.5 ${themeClasses.bgCard} ${themeClasses.bgCardHover} ${themeClasses.borderRadius} font-semibold transition-all`}
