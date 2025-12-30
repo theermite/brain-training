@@ -899,16 +899,19 @@ export function SkillshotTrainer({
 
   return (
     <div ref={containerRef} className={mergeThemeClasses('relative w-full h-full', className)}>
-      <div className="flex flex-col items-center justify-center gap-4 h-full">
+      {/* Canvas - Full screen when playing, centered when idle */}
+      <div className={`${gameState === 'playing' ? 'fixed inset-0 z-0' : 'flex flex-col items-center justify-center gap-4 h-full'}`}>
         <canvas
           ref={canvasRef}
           width={CANVAS_WIDTH}
           height={CANVAS_HEIGHT}
-          className="w-full h-auto max-h-screen bg-slate-950 rounded-lg shadow-2xl"
-          style={{ touchAction: 'none', aspectRatio: '16/9' }}
+          className={gameState === 'playing' ? 'w-full h-full object-contain bg-slate-950' : 'w-full h-auto max-h-screen bg-slate-950 rounded-lg shadow-2xl'}
+          style={{ touchAction: 'none' }}
         />
+      </div>
 
-        {/* Idle State */}
+      {/* Idle State */}
+      <div className={gameState === 'idle' ? 'relative z-10' : 'hidden'}>
         {gameState === 'idle' && (
           <div className="text-center space-y-6">
             <div>
@@ -973,10 +976,11 @@ export function SkillshotTrainer({
             </div>
           </div>
         )}
+      </div>
 
-        {/* Playing State - Controls */}
-        {gameState === 'playing' && (
-          <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 9999 }}>
+      {/* Playing State - Controls */}
+      {gameState === 'playing' && (
+        <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 9999 }}>
             {/* Stats HUD */}
             <div className="absolute top-4 left-4 right-4 pointer-events-auto">
               <div className="flex justify-between items-center bg-black/60 backdrop-blur rounded-lg p-3 text-white">
@@ -1026,95 +1030,97 @@ export function SkillshotTrainer({
               </div>
             </div>
 
-            {/* Ability Buttons - Bottom Right in Diagonal/Oblique Layout with large spacing */}
-            <div className="fixed right-4 bottom-4 pointer-events-auto" style={{ width: '500px', height: '500px' }}>
-              {/* Line Skillshot - Sort 1 (bottom-right position) */}
-              <button
-                onTouchStart={(e) => handleSkillStart(e, 'line')}
-                onTouchMove={handleSkillMove}
-                onTouchEnd={() => handleSkillEnd('line')}
-                onMouseDown={(e) => handleSkillStart(e, 'line')}
-                onMouseMove={handleSkillMove}
-                onMouseUp={() => handleSkillEnd('line')}
-                disabled={getCooldownPercent('line') > 0}
-                className="absolute w-20 h-20 bg-red-600 hover:bg-red-700 disabled:bg-gray-700 disabled:opacity-50 rounded-full shadow-lg font-bold text-2xl transition-all"
-                style={{
-                  touchAction: 'none',
-                  right: '10px',
-                  bottom: '10px'
-                }}
-              >
-                <span className="relative z-10">━</span>
-                {getCooldownPercent('line') > 0 && (
-                  <div
-                    className="absolute inset-0 bg-black/70 rounded-full"
-                    style={{
-                      clipPath: `polygon(50% 50%, 50% 0%, ${50 + 50 * Math.sin((getCooldownPercent('line') / 100) * 2 * Math.PI)}% ${50 - 50 * Math.cos((getCooldownPercent('line') / 100) * 2 * Math.PI)}%)`,
-                    }}
-                  />
-                )}
-              </button>
+            {/* Ability Buttons - Bottom Right in MOBA arc layout (like HOK/Wild Rift) */}
+            <div className="fixed right-6 bottom-6 pointer-events-auto">
+              <div className="relative" style={{ width: '220px', height: '100px' }}>
+                {/* Sort 1 - Line (rightmost, lowest) */}
+                <button
+                  onTouchStart={(e) => handleSkillStart(e, 'line')}
+                  onTouchMove={handleSkillMove}
+                  onTouchEnd={() => handleSkillEnd('line')}
+                  onMouseDown={(e) => handleSkillStart(e, 'line')}
+                  onMouseMove={handleSkillMove}
+                  onMouseUp={() => handleSkillEnd('line')}
+                  disabled={getCooldownPercent('line') > 0}
+                  className="absolute w-20 h-20 bg-red-600 hover:bg-red-700 disabled:bg-gray-700 disabled:opacity-50 rounded-full shadow-lg font-bold text-2xl transition-all"
+                  style={{
+                    touchAction: 'none',
+                    right: '0px',
+                    bottom: '0px'
+                  }}
+                >
+                  <span className="relative z-10">━</span>
+                  {getCooldownPercent('line') > 0 && (
+                    <div
+                      className="absolute inset-0 bg-black/70 rounded-full"
+                      style={{
+                        clipPath: `polygon(50% 50%, 50% 0%, ${50 + 50 * Math.sin((getCooldownPercent('line') / 100) * 2 * Math.PI)}% ${50 - 50 * Math.cos((getCooldownPercent('line') / 100) * 2 * Math.PI)}%)`,
+                      }}
+                    />
+                  )}
+                </button>
 
-              {/* Circle Skillshot - Sort 2 (middle diagonal position) */}
-              <button
-                onTouchStart={(e) => handleSkillStart(e, 'circle')}
-                onTouchMove={handleSkillMove}
-                onTouchEnd={() => handleSkillEnd('circle')}
-                onMouseDown={(e) => handleSkillStart(e, 'circle')}
-                onMouseMove={handleSkillMove}
-                onMouseUp={() => handleSkillEnd('circle')}
-                disabled={getCooldownPercent('circle') > 0}
-                className="absolute w-20 h-20 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:opacity-50 rounded-full shadow-lg font-bold text-2xl transition-all"
-                style={{
-                  touchAction: 'none',
-                  right: '210px',
-                  bottom: '210px'
-                }}
-              >
-                <span className="relative z-10">●</span>
-                {getCooldownPercent('circle') > 0 && (
-                  <div
-                    className="absolute inset-0 bg-black/70 rounded-full"
-                    style={{
-                      clipPath: `polygon(50% 50%, 50% 0%, ${50 + 50 * Math.sin((getCooldownPercent('circle') / 100) * 2 * Math.PI)}% ${50 - 50 * Math.cos((getCooldownPercent('circle') / 100) * 2 * Math.PI)}%)`,
-                    }}
-                  />
-                )}
-              </button>
+                {/* Sort 2 - Circle (middle) */}
+                <button
+                  onTouchStart={(e) => handleSkillStart(e, 'circle')}
+                  onTouchMove={handleSkillMove}
+                  onTouchEnd={() => handleSkillEnd('circle')}
+                  onMouseDown={(e) => handleSkillStart(e, 'circle')}
+                  onMouseMove={handleSkillMove}
+                  onMouseUp={() => handleSkillEnd('circle')}
+                  disabled={getCooldownPercent('circle') > 0}
+                  className="absolute w-20 h-20 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:opacity-50 rounded-full shadow-lg font-bold text-2xl transition-all"
+                  style={{
+                    touchAction: 'none',
+                    right: '90px',
+                    bottom: '10px'
+                  }}
+                >
+                  <span className="relative z-10">●</span>
+                  {getCooldownPercent('circle') > 0 && (
+                    <div
+                      className="absolute inset-0 bg-black/70 rounded-full"
+                      style={{
+                        clipPath: `polygon(50% 50%, 50% 0%, ${50 + 50 * Math.sin((getCooldownPercent('circle') / 100) * 2 * Math.PI)}% ${50 - 50 * Math.cos((getCooldownPercent('circle') / 100) * 2 * Math.PI)}%)`,
+                      }}
+                    />
+                  )}
+                </button>
 
-              {/* Cone Skillshot - Sort 3 (top-left diagonal position) */}
-              <button
-                onTouchStart={(e) => handleSkillStart(e, 'cone')}
-                onTouchMove={handleSkillMove}
-                onTouchEnd={() => handleSkillEnd('cone')}
-                onMouseDown={(e) => handleSkillStart(e, 'cone')}
-                onMouseMove={handleSkillMove}
-                onMouseUp={() => handleSkillEnd('cone')}
-                disabled={getCooldownPercent('cone') > 0}
-                className="absolute w-20 h-20 bg-cyan-600 hover:bg-cyan-700 disabled:bg-gray-700 disabled:opacity-50 rounded-full shadow-lg font-bold text-2xl transition-all"
-                style={{
-                  touchAction: 'none',
-                  right: '410px',
-                  bottom: '410px'
-                }}
-              >
-                <span className="relative z-10">▲</span>
-                {getCooldownPercent('cone') > 0 && (
-                  <div
-                    className="absolute inset-0 bg-black/70 rounded-full"
-                    style={{
-                      clipPath: `polygon(50% 50%, 50% 0%, ${50 + 50 * Math.sin((getCooldownPercent('cone') / 100) * 2 * Math.PI)}% ${50 - 50 * Math.cos((getCooldownPercent('cone') / 100) * 2 * Math.PI)}%)`,
-                    }}
-                  />
-                )}
-              </button>
+                {/* Sort 3 - Cone (leftmost, slightly higher) */}
+                <button
+                  onTouchStart={(e) => handleSkillStart(e, 'cone')}
+                  onTouchMove={handleSkillMove}
+                  onTouchEnd={() => handleSkillEnd('cone')}
+                  onMouseDown={(e) => handleSkillStart(e, 'cone')}
+                  onMouseMove={handleSkillMove}
+                  onMouseUp={() => handleSkillEnd('cone')}
+                  disabled={getCooldownPercent('cone') > 0}
+                  className="absolute w-20 h-20 bg-cyan-600 hover:bg-cyan-700 disabled:bg-gray-700 disabled:opacity-50 rounded-full shadow-lg font-bold text-2xl transition-all"
+                  style={{
+                    touchAction: 'none',
+                    right: '180px',
+                    bottom: '20px'
+                  }}
+                >
+                  <span className="relative z-10">▲</span>
+                  {getCooldownPercent('cone') > 0 && (
+                    <div
+                      className="absolute inset-0 bg-black/70 rounded-full"
+                      style={{
+                        clipPath: `polygon(50% 50%, 50% 0%, ${50 + 50 * Math.sin((getCooldownPercent('cone') / 100) * 2 * Math.PI)}% ${50 - 50 * Math.cos((getCooldownPercent('cone') / 100) * 2 * Math.PI)}%)`,
+                      }}
+                    />
+                  )}
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+        </div>
+      )}
 
-        {/* Paused State */}
-        {gameState === 'paused' && (
-          <div className="fixed inset-0 bg-black/80 flex items-center justify-center" style={{ zIndex: 10000 }}>
+      {/* Paused State */}
+      {gameState === 'paused' && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center" style={{ zIndex: 10000 }}>
             <div className={`${themeClasses.bgCard} p-8 rounded-2xl max-w-md text-center space-y-4`}>
               <h2 className="text-3xl font-bold text-amber-400">⏸️ Pause</h2>
               <div className="space-y-2">
@@ -1132,12 +1138,12 @@ export function SkillshotTrainer({
                 </button>
               </div>
             </div>
-          </div>
-        )}
+        </div>
+      )}
 
-        {/* Game Over State */}
-        {gameState === 'gameOver' && (
-          <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4" style={{ zIndex: 10000 }}>
+      {/* Game Over State */}
+      {gameState === 'gameOver' && (
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4" style={{ zIndex: 10000 }}>
             <div className={`${themeClasses.bgCard} p-6 rounded-xl max-w-lg w-full text-center space-y-4 relative`}>
               {/* Close button */}
               <button
@@ -1221,9 +1227,8 @@ export function SkillshotTrainer({
                 )}
               </div>
             </div>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
