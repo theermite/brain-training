@@ -899,21 +899,30 @@ export function SkillshotTrainer({
 
   return (
     <div ref={containerRef} className={mergeThemeClasses('relative w-full h-full', className)}>
-      {/* Canvas - Full screen when playing, centered when idle */}
-      <div className={`${gameState === 'playing' ? 'fixed inset-0 z-0' : 'flex flex-col items-center justify-center gap-4 h-full'}`}>
-        <canvas
-          ref={canvasRef}
-          width={CANVAS_WIDTH}
-          height={CANVAS_HEIGHT}
-          className={gameState === 'playing' ? 'w-full h-full object-contain bg-slate-950' : 'w-full h-auto max-h-screen bg-slate-950 rounded-lg shadow-2xl'}
-          style={{ touchAction: 'none' }}
-        />
-      </div>
+      {/* Canvas - Full screen when playing, hidden when idle */}
+      {gameState === 'playing' && (
+        <div className="fixed inset-0 z-0">
+          <canvas
+            ref={canvasRef}
+            width={CANVAS_WIDTH}
+            height={CANVAS_HEIGHT}
+            className="w-full h-full object-contain bg-slate-950"
+            style={{ touchAction: 'none' }}
+          />
+        </div>
+      )}
 
       {/* Idle State */}
-      <div className={gameState === 'idle' ? 'relative z-10' : 'hidden'}>
-        {gameState === 'idle' && (
-          <div className="text-center space-y-6">
+      {gameState === 'idle' && (
+        <div className="flex flex-col items-center justify-center min-h-screen">
+          <canvas
+            ref={canvasRef}
+            width={CANVAS_WIDTH}
+            height={CANVAS_HEIGHT}
+            className="w-full h-auto max-h-screen bg-slate-950 rounded-lg shadow-2xl mb-6"
+            style={{ touchAction: 'none' }}
+          />
+          <div className="text-center space-y-6 pb-8">
             <div>
               <h2 className={`text-2xl font-bold mb-2 ${themeClasses.textMain}`}>
                 🎯 Skillshot Trainer
@@ -975,8 +984,8 @@ export function SkillshotTrainer({
               </ul>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Playing State - Controls */}
       {gameState === 'playing' && (
@@ -1008,8 +1017,8 @@ export function SkillshotTrainer({
               </div>
             </div>
 
-            {/* Joystick - Bottom Left */}
-            <div className="fixed left-8 bottom-8 pointer-events-auto">
+            {/* Joystick - Bottom Left (vraiment dans le coin comme HOK/Wild Rift) */}
+            <div className="fixed left-4 bottom-4 pointer-events-auto">
               <div
                 className="relative w-32 h-32 bg-gray-800/70 rounded-full border-4 border-gray-600 shadow-lg"
                 onTouchStart={handleJoystickStart}
@@ -1031,7 +1040,7 @@ export function SkillshotTrainer({
             </div>
 
             {/* Ability Buttons - Bottom Right in MOBA arc layout (like HOK/Wild Rift) */}
-            <div className="fixed right-6 bottom-6 pointer-events-auto">
+            <div className="fixed right-4 bottom-4 pointer-events-auto">
               <div className="relative" style={{ width: '220px', height: '100px' }}>
                 {/* Sort 1 - Line (rightmost, lowest) */}
                 <button
