@@ -17,6 +17,8 @@ export { BreathingExercise } from './components/BreathingExercise'
 export { ReactionTime } from './components/ReactionTime'
 export { PeripheralVision } from './components/PeripheralVision'
 export { MultiTask } from './components/MultiTask'
+export { DodgeMaster } from './components/DodgeMaster'
+export { SkillshotTrainer } from './components/SkillshotTrainer'
 
 // Types
 export type {

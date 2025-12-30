@@ -8,6 +8,8 @@ import {
   ReactionTime,
   PeripheralVision,
   MultiTask,
+  DodgeMaster,
+  SkillshotTrainer,
   MemoryExerciseType,
   DifficultyLevel,
 } from '@theermite/brain-training'
@@ -21,6 +23,8 @@ type ExerciseType =
   | 'reaction-time'
   | 'peripheral-vision'
   | 'multi-task'
+  | 'dodge-master'
+  | 'skillshot-trainer'
 
 const exercises = [
   { id: 'memory-cards', label: '🃏 Memory Cards', category: 'Mémoire' },
@@ -30,6 +34,8 @@ const exercises = [
   { id: 'reaction-time', label: '⚡ Reaction Time', category: 'Performance' },
   { id: 'peripheral-vision', label: '👁️ Peripheral Vision', category: 'Performance' },
   { id: 'multi-task', label: '🧠 Multi-Task', category: 'Performance' },
+  { id: 'dodge-master', label: '🎯 Dodge Master', category: 'MOBA Mobile' },
+  { id: 'skillshot-trainer', label: '🎪 Skillshot Trainer', category: 'MOBA Mobile' },
   { id: 'breathing', label: '🌬️ Breathing', category: 'Bien-être' },
 ] as const
 
@@ -45,12 +51,12 @@ function App() {
             🧠 Brain Training Complete Demo
           </h1>
           <p className="text-gray-400 text-lg">
-            @theermite/brain-training v1.0.0 - 8 exercices cognitifs
+            @theermite/brain-training v1.0.0 - 10 exercices cognitifs
           </p>
         </div>
 
         {/* Category Tabs */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {/* Mémoire */}
           <div className="bg-slate-900 rounded-xl p-4">
             <h3 className="text-sm font-semibold text-emerald-400 mb-3">💾 Mémoire</h3>
@@ -86,6 +92,28 @@ function App() {
                     className={`w-full text-left px-4 py-2 rounded-lg transition-all ${
                       activeExercise === ex.id
                         ? 'bg-amber-600 text-white font-semibold'
+                        : 'bg-slate-800 text-gray-400 hover:bg-slate-700'
+                    }`}
+                  >
+                    {ex.label}
+                  </button>
+                ))}
+            </div>
+          </div>
+
+          {/* MOBA Mobile */}
+          <div className="bg-slate-900 rounded-xl p-4">
+            <h3 className="text-sm font-semibold text-purple-400 mb-3">🎮 MOBA Mobile</h3>
+            <div className="space-y-2">
+              {exercises
+                .filter((ex) => ex.category === 'MOBA Mobile')
+                .map((ex) => (
+                  <button
+                    key={ex.id}
+                    onClick={() => setActiveExercise(ex.id as ExerciseType)}
+                    className={`w-full text-left px-4 py-2 rounded-lg transition-all ${
+                      activeExercise === ex.id
+                        ? 'bg-purple-600 text-white font-semibold'
                         : 'bg-slate-800 text-gray-400 hover:bg-slate-700'
                     }`}
                   >
@@ -219,6 +247,22 @@ function App() {
             />
           )}
 
+          {activeExercise === 'dodge-master' && (
+            <DodgeMaster
+              duration={60}
+              theme="ermite"
+              onComplete={(session) => console.log('DodgeMaster completed:', session)}
+            />
+          )}
+
+          {activeExercise === 'skillshot-trainer' && (
+            <SkillshotTrainer
+              duration={60}
+              theme="ermite"
+              onComplete={(session) => console.log('SkillshotTrainer completed:', session)}
+            />
+          )}
+
           {activeExercise === 'breathing' && (
             <BreathingExercise
               theme="ermite"
@@ -234,7 +278,7 @@ function App() {
           <p className="font-semibold text-gray-400">
             Package: @theermite/brain-training v1.0.0
           </p>
-          <p>8 exercices - 3 thèmes - Mobile-first - Type-safe</p>
+          <p>10 exercices - 4 catégories - Mobile-first - Type-safe</p>
           <p>© Jay "The Ermite" Goncalves</p>
         </div>
       </div>
