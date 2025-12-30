@@ -641,16 +641,7 @@ export function SkillshotTrainer({
   }, [duration, getDifficultyConfig, spawnTarget, checkCollisions, updateCooldowns])
 
   const startGame = useCallback(async () => {
-    // Force landscape mode first
-    if (screen.orientation && 'lock' in screen.orientation) {
-      try {
-        await (screen.orientation as any).lock('landscape')
-      } catch (err) {
-        console.warn('Landscape lock failed:', err)
-      }
-    }
-
-    // Enter fullscreen
+    // Enter fullscreen FIRST (required for orientation lock)
     const container = containerRef.current
     if (container && !document.fullscreenElement) {
       try {
@@ -658,6 +649,15 @@ export function SkillshotTrainer({
         setIsFullscreen(true)
       } catch (err) {
         console.warn('Fullscreen failed:', err)
+      }
+    }
+
+    // Then force landscape mode (only works in fullscreen)
+    if (screen.orientation && 'lock' in screen.orientation) {
+      try {
+        await (screen.orientation as any).lock('landscape')
+      } catch (err) {
+        console.warn('Landscape lock failed:', err)
       }
     }
 

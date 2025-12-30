@@ -501,7 +501,28 @@ export function DodgeMaster({
     joystickPosRef.current = { x: 0, y: 0 }
   }
 
-  const startGame = () => {
+  const startGame = async () => {
+    // Enter fullscreen and lock landscape automatically
+    if (!document.fullscreenElement) {
+      const container = document.querySelector('.dodge-master-container')
+      if (container) {
+        try {
+          await container.requestFullscreen()
+          setIsFullscreen(true)
+          // Lock to landscape after fullscreen
+          if (screen.orientation && 'lock' in screen.orientation) {
+            try {
+              await (screen.orientation as any).lock('landscape')
+            } catch (err) {
+              console.warn('Landscape lock failed:', err)
+            }
+          }
+        } catch (err) {
+          console.warn('Fullscreen failed:', err)
+        }
+      }
+    }
+
     setGameState('playing')
     playerPosRef.current = { x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT / 2 }
     projectilesRef.current = []
@@ -664,7 +685,7 @@ export function DodgeMaster({
               onClick={toggleFullscreen}
               className={`w-full px-4 py-2 ${themeClasses.bgCard} ${themeClasses.bgCardHover} ${themeClasses.borderRadius} ${themeClasses.border} border text-sm transition-all`}
             >
-              📱 Mode plein écran (paysage recommandé)
+              {isFullscreen ? '📱 Quitter le plein écran' : '📱 Mode plein écran (paysage recommandé)'}
             </button>
           </div>
         </div>
