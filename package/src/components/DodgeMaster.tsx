@@ -39,14 +39,15 @@ export interface DodgeMasterProps extends ExerciseBaseProps {
   duration?: number
 }
 
-const CANVAS_WIDTH = 800
-const CANVAS_HEIGHT = 600
-const PLAYER_RADIUS = 20
-const JOYSTICK_RADIUS = 60
-const JOYSTICK_HANDLE_RADIUS = 25
+// MOBA-style landscape format (16:9 ratio for mobile landscape gaming)
+const CANVAS_WIDTH = 1280
+const CANVAS_HEIGHT = 720
+const PLAYER_RADIUS = 25
+const JOYSTICK_RADIUS = 80
+const JOYSTICK_HANDLE_RADIUS = 35
 
 // Playable zone (70% of canvas in center - like MOBA)
-const PLAYABLE_ZONE_MARGIN = 0.15 // 15% margin on each side
+const PLAYABLE_ZONE_MARGIN = 0.1 // 10% margin on each side
 const PLAYABLE_MIN_X = CANVAS_WIDTH * PLAYABLE_ZONE_MARGIN
 const PLAYABLE_MAX_X = CANVAS_WIDTH * (1 - PLAYABLE_ZONE_MARGIN)
 const PLAYABLE_MIN_Y = CANVAS_HEIGHT * PLAYABLE_ZONE_MARGIN
@@ -120,24 +121,24 @@ export function DodgeMaster({
     switch (currentDifficulty) {
       case 'easy':
         return {
-          projectileSpeed: 2,
+          projectileSpeed: 3,
           spawnInterval: 2000,
           maxProjectiles: 3,
-          projectileRadius: 15,
+          projectileRadius: 18,
         }
       case 'medium':
         return {
-          projectileSpeed: 3.5,
+          projectileSpeed: 5,
           spawnInterval: 1500,
           maxProjectiles: 5,
-          projectileRadius: 12,
+          projectileRadius: 15,
         }
       case 'hard':
         return {
-          projectileSpeed: 5,
+          projectileSpeed: 7,
           spawnInterval: 1000,
           maxProjectiles: 8,
-          projectileRadius: 10,
+          projectileRadius: 12,
         }
       default:
         return {
@@ -727,8 +728,8 @@ export function DodgeMaster({
           ref={canvasRef}
           width={CANVAS_WIDTH}
           height={CANVAS_HEIGHT}
-          className="max-w-full max-h-full"
-          style={{ touchAction: 'none' }}
+          className="w-full h-auto max-h-screen"
+          style={{ touchAction: 'none', aspectRatio: '16/9' }}
         />
 
         {/* Pause overlay */}

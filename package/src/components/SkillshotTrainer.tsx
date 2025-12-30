@@ -55,36 +55,37 @@ export interface SkillshotTrainerProps extends ExerciseBaseProps {
   duration?: number
 }
 
-const CANVAS_WIDTH = 700
-const CANVAS_HEIGHT = 550
-const PLAYER_RADIUS = 15
-const TARGET_RADIUS = 18
-const PLAYABLE_ZONE_MARGIN = 0.15
+// MOBA-style landscape format (16:9 ratio for mobile landscape gaming)
+const CANVAS_WIDTH = 1280
+const CANVAS_HEIGHT = 720
+const PLAYER_RADIUS = 20
+const TARGET_RADIUS = 25
+const PLAYABLE_ZONE_MARGIN = 0.1 // 10% margin on each side (tighter for MOBA feel)
 const PLAYABLE_MIN_X = CANVAS_WIDTH * PLAYABLE_ZONE_MARGIN
 const PLAYABLE_MAX_X = CANVAS_WIDTH * (1 - PLAYABLE_ZONE_MARGIN)
 const PLAYABLE_MIN_Y = CANVAS_HEIGHT * PLAYABLE_ZONE_MARGIN
 const PLAYABLE_MAX_Y = CANVAS_HEIGHT * (1 - PLAYABLE_ZONE_MARGIN)
 
-// Skillshot configurations
+// Skillshot configurations (scaled for larger canvas)
 const SKILLSHOT_CONFIGS = {
   line: {
-    speed: 8,
-    width: 40,
-    maxDistance: 500,
+    speed: 12,
+    width: 50,
+    maxDistance: 700,
     color: '#ef4444',
     cooldown: 800,
   },
   circle: {
-    speed: 6,
-    width: 80,
-    maxDistance: 250, // Reduced from 400
+    speed: 9,
+    width: 100,
+    maxDistance: 400,
     color: '#8b5cf6',
     cooldown: 1500,
   },
   cone: {
-    speed: 7,
-    width: 120,
-    maxDistance: 350,
+    speed: 10,
+    width: 150,
+    maxDistance: 500,
     color: '#06b6d4',
     cooldown: 1000,
   },
@@ -897,14 +898,14 @@ export function SkillshotTrainer({
   }
 
   return (
-    <div ref={containerRef} className={mergeThemeClasses('relative w-full', className)}>
-      <div className="flex flex-col items-center gap-4">
+    <div ref={containerRef} className={mergeThemeClasses('relative w-full h-full', className)}>
+      <div className="flex flex-col items-center justify-center gap-4 h-full">
         <canvas
           ref={canvasRef}
           width={CANVAS_WIDTH}
           height={CANVAS_HEIGHT}
-          className="max-w-full h-auto bg-slate-950 rounded-lg shadow-2xl"
-          style={{ touchAction: 'none' }}
+          className="w-full h-auto max-h-screen bg-slate-950 rounded-lg shadow-2xl"
+          style={{ touchAction: 'none', aspectRatio: '16/9' }}
         />
 
         {/* Idle State */}
