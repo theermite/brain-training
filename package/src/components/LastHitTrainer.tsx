@@ -41,6 +41,28 @@ interface Stats {
   timeElapsed: number
 }
 
+interface Particle {
+  x: number
+  y: number
+  vx: number
+  vy: number
+  life: number
+  maxLife: number
+  color: string
+  size: number
+  type: 'gold' | 'hit' | 'combo' | 'death'
+}
+
+interface FloatingText {
+  x: number
+  y: number
+  text: string
+  color: string
+  life: number
+  maxLife: number
+  vy: number
+}
+
 export interface LastHitTrainerProps extends ExerciseBaseProps {
   duration?: number
 }
@@ -147,6 +169,11 @@ export function LastHitTrainer({
   const totalPausedTimeRef = useRef(0)
   const pausedTimeRef = useRef(0)
 
+  // Animation refs
+  const particlesRef = useRef<Particle[]>([])
+  const floatingTextsRef = useRef<FloatingText[]>([])
+  const healthBarFlashRef = useRef<Map<number, number>>(new Map())
+
   useEffect(() => {
     gameStateRef.current = gameState
   }, [gameState])
@@ -154,6 +181,57 @@ export function LastHitTrainer({
   useEffect(() => {
     difficultyRef.current = difficulty
   }, [difficulty])
+
+  // Animation helpers
+  const spawnParticles = useCallback((x: number, y: number, type: Particle['type'], count: number = 10) => {
+    const newParticles: Particle[] = []
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5
+      const speed = 2 + Math.random() * 3
+      newParticles.push({
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 2,
+        life: 1,
+        maxLife: 1,
+        color: type === 'gold' ? '#fbbf24' : type === 'combo' ? '#f97316' : type === 'death' ? '#ef4444' : '#ffffff',
+        size: type === 'gold' ? 6 : 4,
+        type,
+      })
+    }
+    particlesRef.current.push(...newParticles)
+  }, [])
+
+  const spawnFloatingText = useCallback((x: number, y: number, text: string, color: string) => {
+    floatingTextsRef.current.push({
+      x,
+      y,
+      text,
+      color,
+      life: 1,
+      maxLife: 1,
+      vy: -1.5,
+    })
+  }, [])
+
+  const updateParticles = useCallback((deltaTime: number) => {
+    particlesRef.current = particlesRef.current.filter((particle) => {
+      particle.life -= deltaTime
+      particle.x += particle.vx
+      particle.y += particle.vy
+      particle.vy += 0.2 // Gravity
+      return particle.life > 0
+    })
+  }, [])
+
+  const updateFloatingTexts = useCallback((deltaTime: number) => {
+    floatingTextsRef.current = floatingTextsRef.current.filter((text) => {
+      text.life -= deltaTime
+      text.y += text.vy
+      return text.life > 0
+    })
+  }, [])
 
   const getDifficultyConfig = useCallback(() => {
     const currentDifficulty = difficultyRef.current
@@ -246,6 +324,10 @@ export function LastHitTrainer({
 
         // Remove dead creeps
         if (creep.currentHealth <= 0) {
+          // Spawn death particles
+          spawnParticles(creep.position.x, creep.position.y, 'death', 8)
+          spawnFloatingText(creep.position.x, creep.position.y - 30, 'MISSED!', '#ef4444')
+
           // Missed CS
           setStats((prev) => ({
             ...prev,
@@ -259,7 +341,7 @@ export function LastHitTrainer({
         return true
       })
     },
-    [getDifficultyConfig]
+    [getDifficultyConfig, spawnParticles, spawnFloatingText]
   )
 
   const updateEnemy = useCallback(() => {
@@ -327,6 +409,20 @@ export function LastHitTrainer({
       // Check for last hit
       if (closest.currentHealth <= 0) {
         const isPerfect = closest.currentHealth > -20 // Perfect timing window
+
+        // Spawn visual effects
+        spawnParticles(closest.position.x, closest.position.y, 'gold', isPerfect ? 20 : 12)
+        spawnFloatingText(
+          closest.position.x,
+          closest.position.y - 35,
+          `+${closest.goldValue}g`,
+          '#fbbf24'
+        )
+
+        if (isPerfect) {
+          spawnFloatingText(closest.position.x, closest.position.y - 50, 'PERFECT!', '#10b981')
+        }
+
         setStats((prev) => ({
           ...prev,
           gold: prev.gold + closest.goldValue,
@@ -336,11 +432,19 @@ export function LastHitTrainer({
           perfectHits: prev.perfectHits + (isPerfect ? 1 : 0),
           accuracy: ((prev.cs + 1) / (prev.cs + 1 + prev.missedCs)) * 100,
         }))
+
+        // Spawn combo particles
+        if (stats.combo >= 2) {
+          spawnParticles(playerPos.x, playerPos.y - 30, 'combo', 5)
+        }
       }
+
+      // Flash effect on attack
+      healthBarFlashRef.current.set(closest.id, Date.now())
 
       lastAttackTimeRef.current = now
     }
-  }, [championType])
+  }, [championType, spawnParticles, spawnFloatingText, stats.combo])
 
   const gameLoop = useCallback(() => {
     const canvas = canvasRef.current
@@ -369,6 +473,10 @@ export function LastHitTrainer({
     // Update game objects
     updateCreeps(deltaTime)
     updateEnemy()
+
+    // Update animations
+    updateParticles(deltaTime)
+    updateFloatingTexts(deltaTime)
 
     // Update player position
     if (joystickActiveRef.current) {
@@ -418,14 +526,32 @@ export function LastHitTrainer({
       ctx.fillStyle = '#334155'
       ctx.fillRect(barX, barY, barWidth, barHeight)
 
-      // Last hit indicator (red when low health)
+      // Last hit indicator (red when low health with flash/pulse effect)
       const lastHitThreshold = CHAMPION_STATS[championType].attackDamage
-      if (creep.currentHealth <= lastHitThreshold) {
-        ctx.fillStyle = '#ef4444'
+      const isInLastHitZone = creep.currentHealth <= lastHitThreshold
+
+      // Flash effect on recent attack
+      const flashTime = healthBarFlashRef.current.get(creep.id)
+      const timeSinceFlash = flashTime ? now - flashTime : 999999
+      const isFlashing = timeSinceFlash < 200
+
+      if (isInLastHitZone) {
+        // Pulse effect in last hit zone
+        const pulseIntensity = 0.7 + Math.sin(now / 200) * 0.3
+        ctx.fillStyle = isFlashing ? '#fbbf24' : `rgba(239, 68, 68, ${pulseIntensity})`
       } else {
-        ctx.fillStyle = '#10b981'
+        ctx.fillStyle = isFlashing ? '#fbbf24' : '#10b981'
       }
       ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight)
+
+      // Perfect hit zone indicator (thin line)
+      if (isInLastHitZone && creep.currentHealth > 0) {
+        const perfectZonePercent = (creep.currentHealth - 20) / creep.maxHealth
+        if (perfectZonePercent > 0) {
+          ctx.fillStyle = '#10b981'
+          ctx.fillRect(barX, barY - 1, barWidth * perfectZonePercent, 1)
+        }
+      }
 
       // Gold value
       ctx.fillStyle = '#fbbf24'
@@ -460,8 +586,52 @@ export function LastHitTrainer({
     ctx.stroke()
     ctx.setLineDash([])
 
+    // Draw combo flame effect around player
+    if (stats.combo >= 3) {
+      const flameIntensity = Math.min(stats.combo / 10, 1)
+      const flameSize = 30 + stats.combo * 3
+      const pulseSize = Math.sin(now / 100) * 5
+
+      ctx.save()
+      ctx.globalAlpha = 0.3 + flameIntensity * 0.3
+      const gradient = ctx.createRadialGradient(player.x, player.y, 0, player.x, player.y, flameSize + pulseSize)
+      gradient.addColorStop(0, stats.combo >= 5 ? '#f97316' : '#fbbf24')
+      gradient.addColorStop(0.5, stats.combo >= 5 ? '#ea580c' : '#f59e0b')
+      gradient.addColorStop(1, 'transparent')
+      ctx.fillStyle = gradient
+      ctx.beginPath()
+      ctx.arc(player.x, player.y, flameSize + pulseSize, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.restore()
+    }
+
+    // Draw particles
+    particlesRef.current.forEach((particle) => {
+      ctx.save()
+      ctx.globalAlpha = particle.life / particle.maxLife
+      ctx.fillStyle = particle.color
+      ctx.beginPath()
+      ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.restore()
+    })
+
+    // Draw floating texts
+    floatingTextsRef.current.forEach((text) => {
+      ctx.save()
+      ctx.globalAlpha = text.life / text.maxLife
+      ctx.fillStyle = text.color
+      ctx.font = 'bold 16px Arial'
+      ctx.textAlign = 'center'
+      ctx.strokeStyle = '#000000'
+      ctx.lineWidth = 3
+      ctx.strokeText(text.text, text.x, text.y)
+      ctx.fillText(text.text, text.x, text.y)
+      ctx.restore()
+    })
+
     animationFrameRef.current = requestAnimationFrame(gameLoop)
-  }, [duration, championType, getDifficultyConfig, spawnWave, updateCreeps, updateEnemy])
+  }, [duration, championType, getDifficultyConfig, spawnWave, updateCreeps, updateEnemy, updateParticles, updateFloatingTexts, spawnParticles, spawnFloatingText, stats.combo])
 
   const startGame = useCallback(async () => {
     // Enter fullscreen and lock landscape
@@ -510,6 +680,11 @@ export function LastHitTrainer({
     totalPausedTimeRef.current = 0
     lastWaveSpawnRef.current = Date.now()
     lastAttackTimeRef.current = 0
+
+    // Reset animations
+    particlesRef.current = []
+    floatingTextsRef.current = []
+    healthBarFlashRef.current.clear()
 
     // Spawn first wave immediately
     setTimeout(() => {
