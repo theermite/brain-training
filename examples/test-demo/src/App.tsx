@@ -327,7 +327,7 @@ function App() {
           </h1>
           <p className="text-xl text-gray-400 mb-2">The Ermite's Collection Tools</p>
           <p className="text-sm text-gray-500">
-            @theermite/brain-training v1.0.0 • 10 cognitive exercises • 4 categories
+            @theermite/brain-training v1.0.0 • 11 cognitive exercises • 4 categories
           </p>
         </div>
 
@@ -452,7 +452,7 @@ function App() {
         {/* Footer */}
         <div className="text-center mt-16 text-gray-500 text-sm space-y-1">
           <p className="font-semibold text-gray-400">Package: @theermite/brain-training v1.0.0</p>
-          <p>10 exercises • 4 categories • Mobile-first • Type-safe</p>
+          <p>11 exercises • 4 categories • Mobile-first • Type-safe</p>
           <p>© Jay "The Ermite" Goncalves</p>
         </div>
       </div>
