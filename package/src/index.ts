@@ -19,6 +19,7 @@ export { PeripheralVision } from './components/PeripheralVision'
 export { MultiTask } from './components/MultiTask'
 export { DodgeMaster } from './components/DodgeMaster'
 export { SkillshotTrainer } from './components/SkillshotTrainer'
+export { LastHitTrainer } from './components/LastHitTrainer'
 
 // Types
 export type {

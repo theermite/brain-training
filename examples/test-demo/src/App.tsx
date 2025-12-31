@@ -10,6 +10,7 @@ import {
   MultiTask,
   DodgeMaster,
   SkillshotTrainer,
+  LastHitTrainer,
   MemoryExerciseType,
   DifficultyLevel,
 } from '@theermite/brain-training'
@@ -25,6 +26,7 @@ type ExerciseType =
   | 'multi-task'
   | 'dodge-master'
   | 'skillshot-trainer'
+  | 'last-hit-trainer'
 
 type Category = 'Mémoire' | 'Performance' | 'MOBA Mobile' | 'Bien-être'
 
@@ -98,6 +100,13 @@ const exercises: Exercise[] = [
     label: 'Skillshot Trainer',
     emoji: '🎪',
     description: 'Practice precision skillshots',
+    category: 'MOBA Mobile',
+  },
+  {
+    id: 'last-hit-trainer',
+    label: 'Last Hit Trainer',
+    emoji: '💰',
+    description: 'Master farming and last hitting',
     category: 'MOBA Mobile',
   },
   {
@@ -282,6 +291,14 @@ function App() {
                 duration={60}
                 theme="ermite"
                 onComplete={(session) => console.log('SkillshotTrainer completed:', session)}
+              />
+            )}
+
+            {activeExercise === 'last-hit-trainer' && (
+              <LastHitTrainer
+                duration={120}
+                theme="ermite"
+                onComplete={(session) => console.log('LastHitTrainer completed:', session)}
               />
             )}
 
