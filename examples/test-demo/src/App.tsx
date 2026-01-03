@@ -11,6 +11,7 @@ import {
   DodgeMaster,
   SkillshotTrainer,
   LastHitTrainer,
+  TrackingFocus,
   MemoryExerciseType,
   DifficultyLevel,
 } from '@theermite/brain-training'
@@ -27,6 +28,7 @@ type ExerciseType =
   | 'dodge-master'
   | 'skillshot-trainer'
   | 'last-hit-trainer'
+  | 'tracking-focus'
 
 type Category = 'Mémoire' | 'Performance' | 'MOBA Mobile' | 'Bien-être'
 
@@ -86,6 +88,13 @@ const exercises: Exercise[] = [
     label: 'Multi-Task',
     emoji: '🧠',
     description: 'Handle multiple tasks simultaneously',
+    category: 'Performance',
+  },
+  {
+    id: 'tracking-focus',
+    label: 'Tracking Focus',
+    emoji: '👁️',
+    description: 'Track multiple moving objects with sustained attention',
     category: 'Performance',
   },
   {
@@ -302,6 +311,16 @@ function App() {
               />
             )}
 
+            {activeExercise === 'tracking-focus' && (
+              <TrackingFocus
+                difficulty="medium"
+                rounds={5}
+                theme="ermite"
+                onComplete={(session) => console.log('TrackingFocus completed:', session)}
+                onProgress={(progress) => console.log('TrackingFocus progress:', progress)}
+              />
+            )}
+
             {activeExercise === 'breathing' && (
               <BreathingExercise
                 theme="ermite"
@@ -327,7 +346,7 @@ function App() {
           </h1>
           <p className="text-xl text-gray-400 mb-2">The Ermite's Collection Tools</p>
           <p className="text-sm text-gray-500">
-            @theermite/brain-training v1.0.0 • 11 cognitive exercises • 4 categories
+            @theermite/brain-training v1.0.0 • 12 cognitive exercises • 4 categories
           </p>
         </div>
 
@@ -452,7 +471,7 @@ function App() {
         {/* Footer */}
         <div className="text-center mt-16 text-gray-500 text-sm space-y-1">
           <p className="font-semibold text-gray-400">Package: @theermite/brain-training v1.0.0</p>
-          <p>11 exercises • 4 categories • Mobile-first • Type-safe</p>
+          <p>12 exercises • 4 categories • Mobile-first • Type-safe</p>
           <p>© Jay "The Ermite" Goncalves</p>
         </div>
       </div>

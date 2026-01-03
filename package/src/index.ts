@@ -20,6 +20,7 @@ export { MultiTask } from './components/MultiTask'
 export { DodgeMaster } from './components/DodgeMaster'
 export { SkillshotTrainer } from './components/SkillshotTrainer'
 export { LastHitTrainer } from './components/LastHitTrainer'
+export { TrackingFocus } from './components/TrackingFocus'
 
 // Types
 export type {

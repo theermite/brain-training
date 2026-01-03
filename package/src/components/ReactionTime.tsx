@@ -148,7 +148,7 @@ export function ReactionTime({
       } else {
         setTimeout(() => {
           startTest()
-        }, 1500)
+        }, 800)
       }
     }
   }
@@ -216,7 +216,7 @@ export function ReactionTime({
             <button
               onClick={() => setDifficulty('easy')}
               className={`
-                px-4 py-3 ${themeClasses.borderRadius} font-semibold transition-all
+                px-4 py-3 ${themeClasses.borderRadius} font-semibold transition-transform duration-150
                 ${
                   difficulty === 'easy'
                     ? `${themeClasses.bgSuccess} text-white scale-105`
@@ -230,7 +230,7 @@ export function ReactionTime({
             <button
               onClick={() => setDifficulty('medium')}
               className={`
-                px-4 py-3 ${themeClasses.borderRadius} font-semibold transition-all
+                px-4 py-3 ${themeClasses.borderRadius} font-semibold transition-transform duration-150
                 ${
                   difficulty === 'medium'
                     ? `${themeClasses.bgPrimary} text-white scale-105`
@@ -244,7 +244,7 @@ export function ReactionTime({
             <button
               onClick={() => setDifficulty('hard')}
               className={`
-                px-4 py-3 ${themeClasses.borderRadius} font-semibold transition-all
+                px-4 py-3 ${themeClasses.borderRadius} font-semibold transition-transform duration-150
                 ${
                   difficulty === 'hard'
                     ? `${themeClasses.bgError} text-white scale-105`
@@ -260,18 +260,24 @@ export function ReactionTime({
       )}
 
       {/* Reaction Area */}
-      <div className="flex-1 flex items-center justify-center mb-6">
+      <div className="flex-1 flex items-center justify-center mb-6 min-h-[400px] sm:min-h-[500px]">
         <button
           onClick={handleClick}
           disabled={gamePhase === 'result'}
+          style={{
+            willChange: 'transform, background-color',
+            touchAction: 'manipulation',
+            WebkitTapHighlightColor: 'transparent'
+          }}
           className={`
-            w-full max-w-md aspect-square ${themeClasses.borderRadius}
+            w-full max-w-2xl h-full ${themeClasses.borderRadius}
             ${getPhaseColor()}
-            transition-all duration-200 transform
-            ${gamePhase !== 'result' ? 'hover:scale-105 active:scale-95' : ''}
-            touch-manipulation select-none
+            transition-[transform,background-color] duration-150 ease-out
+            ${gamePhase !== 'result' ? 'hover:scale-[1.02] active:scale-95' : ''}
+            select-none
             flex items-center justify-center
-            text-xl sm:text-3xl font-bold
+            text-2xl sm:text-4xl font-bold
+            cursor-pointer
           `}
         >
           {getPhaseText()}
@@ -307,7 +313,7 @@ export function ReactionTime({
         {gamePhase === 'idle' && (
           <button
             onClick={startTest}
-            className={`flex-1 px-6 py-3 ${themeClasses.bgPrimary} ${themeClasses.bgPrimaryHover} ${themeClasses.borderRadius} font-semibold transition-all`}
+            className={`flex-1 px-6 py-3 ${themeClasses.bgPrimary} ${themeClasses.bgPrimaryHover} ${themeClasses.borderRadius} font-semibold transition-transform duration-150 active:scale-95`}
           >
             ▶ Démarrer le Test
           </button>
@@ -315,7 +321,7 @@ export function ReactionTime({
         {currentAttempt >= totalAttempts && (
           <button
             onClick={resetGame}
-            className={`flex-1 px-6 py-3 ${themeClasses.bgCard} ${themeClasses.bgCardHover} ${themeClasses.borderRadius} ${themeClasses.border} border transition-all`}
+            className={`flex-1 px-6 py-3 ${themeClasses.bgCard} ${themeClasses.bgCardHover} ${themeClasses.borderRadius} ${themeClasses.border} border transition-transform duration-150 active:scale-95`}
           >
             🔄 Recommencer
           </button>
@@ -323,7 +329,7 @@ export function ReactionTime({
         {gamePhase === 'tooEarly' && (
           <button
             onClick={() => setGamePhase('idle')}
-            className={`flex-1 px-6 py-3 ${themeClasses.bgWarning} hover:opacity-90 ${themeClasses.borderRadius} transition-all`}
+            className={`flex-1 px-6 py-3 ${themeClasses.bgWarning} hover:opacity-90 ${themeClasses.borderRadius} transition-opacity duration-150`}
           >
             Réessayer
           </button>

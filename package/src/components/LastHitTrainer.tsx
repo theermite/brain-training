@@ -63,6 +63,19 @@ interface FloatingText {
   vy: number
 }
 
+interface AttackAnimation {
+  id: number
+  fromX: number
+  fromY: number
+  toX: number
+  toY: number
+  currentX: number
+  currentY: number
+  life: number
+  maxLife: number
+  type: 'melee' | 'ranged'
+}
+
 export interface LastHitTrainerProps extends ExerciseBaseProps {
   duration?: number
 }
@@ -70,15 +83,19 @@ export interface LastHitTrainerProps extends ExerciseBaseProps {
 // MOBA-style landscape format (16:9 ratio)
 const CANVAS_WIDTH = 1280
 const CANVAS_HEIGHT = 720
-const PLAYER_RADIUS = 25
-const CREEP_RADIUS = 20
-const ENEMY_RADIUS = 25
 
-// Lane setup (horizontal lane)
-const LANE_Y = CANVAS_HEIGHT / 2
+// Lane setup (angled lane at ~37.5 degrees, bottom-left to top-right)
+const LANE_ANGLE = -37.5 * Math.PI / 180 // Negative angle for bottom-left to top-right
+const LANE_Y_BOTTOM = CANVAS_HEIGHT / 2 + 120 // Bottom-left of lane
 const LANE_START_X = 100
 const PLAYER_START_X = 200
+const TOWER_ALLY_X = 120 // Allied tower position
 const ENEMY_START_X = CANVAS_WIDTH - 200
+
+// Helper function to get Y position on lane based on X
+const getLaneY = (x: number): number => {
+  return LANE_Y_BOTTOM + (x - LANE_START_X) * Math.tan(LANE_ANGLE)
+}
 
 // Champion stats
 const CHAMPION_STATS = {
@@ -148,15 +165,16 @@ export function LastHitTrainer({
   const difficultyRef = useRef<Difficulty>('medium')
 
   // Player refs
-  const playerPosRef = useRef<Position>({ x: PLAYER_START_X, y: LANE_Y })
+  const playerPosRef = useRef<Position>({ x: PLAYER_START_X, y: getLaneY(PLAYER_START_X) })
   const joystickActiveRef = useRef(false)
   const joystickPosRef = useRef<Position>({ x: 0, y: 0 })
   const lastAttackTimeRef = useRef(0)
+  const targetedCreepIdRef = useRef<number | null>(null) // Sbire ciblé manuellement
 
   // Game objects refs
   const creepsRef = useRef<Creep[]>([])
   const enemyRef = useRef<Enemy>({
-    position: { x: ENEMY_START_X, y: LANE_Y },
+    position: { x: ENEMY_START_X, y: getLaneY(ENEMY_START_X) },
     targetCreepId: null,
     attackCooldown: 0,
     lastAttackTime: 0,
@@ -168,11 +186,14 @@ export function LastHitTrainer({
   const lastWaveSpawnRef = useRef(0)
   const totalPausedTimeRef = useRef(0)
   const pausedTimeRef = useRef(0)
+  const waveCountRef = useRef(0) // Track wave count for cannon minions
 
   // Animation refs
   const particlesRef = useRef<Particle[]>([])
   const floatingTextsRef = useRef<FloatingText[]>([])
   const healthBarFlashRef = useRef<Map<number, number>>(new Map())
+  const attackAnimationsRef = useRef<AttackAnimation[]>([])
+  const attackIdRef = useRef(0)
 
   useEffect(() => {
     gameStateRef.current = gameState
@@ -233,88 +254,125 @@ export function LastHitTrainer({
     })
   }, [])
 
+  const spawnAttackAnimation = useCallback((fromX: number, fromY: number, toX: number, toY: number, type: 'melee' | 'ranged') => {
+    attackAnimationsRef.current.push({
+      id: attackIdRef.current++,
+      fromX,
+      fromY,
+      toX,
+      toY,
+      currentX: fromX,
+      currentY: fromY,
+      life: 1,
+      maxLife: 1,
+      type,
+    })
+  }, [])
+
+  const updateAttackAnimations = useCallback((deltaTime: number) => {
+    attackAnimationsRef.current = attackAnimationsRef.current.filter((attack) => {
+      attack.life -= deltaTime * (attack.type === 'melee' ? 5 : 2) // Melee faster
+
+      if (attack.type === 'ranged') {
+        // Move projectile towards target
+        const progress = 1 - attack.life / attack.maxLife
+        attack.currentX = attack.fromX + (attack.toX - attack.fromX) * progress
+        attack.currentY = attack.fromY + (attack.toY - attack.fromY) * progress
+      }
+
+      return attack.life > 0
+    })
+  }, [])
+
   const getDifficultyConfig = useCallback(() => {
     const currentDifficulty = difficultyRef.current
 
+    // MOBA mobiles réels: vagues toutes les 30 secondes
     switch (currentDifficulty) {
       case 'easy':
         return {
-          enemyAttackSpeed: 0.5, // attacks per second
-          waveInterval: 8000, // ms between waves
-          creepsPerWave: 3,
-          creepHealthDecayRate: 0.3, // health loss per second
+          enemyAttackSpeed: 0.4, // attacks per second
+          waveInterval: 30000, // 30s comme les MOBA mobiles réels
+          creepHealthDecayRate: 0.25, // health loss per second
         }
       case 'medium':
         return {
-          enemyAttackSpeed: 0.8,
-          waveInterval: 6000,
-          creepsPerWave: 4,
-          creepHealthDecayRate: 0.5,
+          enemyAttackSpeed: 0.6,
+          waveInterval: 30000,
+          creepHealthDecayRate: 0.4,
         }
       case 'hard':
         return {
-          enemyAttackSpeed: 1.2,
-          waveInterval: 5000,
-          creepsPerWave: 5,
-          creepHealthDecayRate: 0.8,
+          enemyAttackSpeed: 0.9,
+          waveInterval: 30000,
+          creepHealthDecayRate: 0.6,
         }
       case 'survival':
         return {
-          enemyAttackSpeed: 1.5,
-          waveInterval: 4000,
-          creepsPerWave: 6,
-          creepHealthDecayRate: 1.0,
+          enemyAttackSpeed: 1.2,
+          waveInterval: 30000,
+          creepHealthDecayRate: 0.8,
         }
       default:
         return {
-          enemyAttackSpeed: 0.8,
-          waveInterval: 6000,
-          creepsPerWave: 4,
-          creepHealthDecayRate: 0.5,
+          enemyAttackSpeed: 0.6,
+          waveInterval: 30000,
+          creepHealthDecayRate: 0.4,
         }
     }
   }, [])
 
   const spawnWave = useCallback(() => {
-    const config = getDifficultyConfig()
     const newCreeps: Creep[] = []
 
-    for (let i = 0; i < config.creepsPerWave; i++) {
-      const rand = Math.random()
-      let type: CreepType
-      if (rand < CREEP_STATS.melee.spawnChance) type = 'melee'
-      else if (rand < CREEP_STATS.melee.spawnChance + CREEP_STATS.ranged.spawnChance)
-        type = 'ranged'
-      else type = 'cannon'
+    // Composition MOBA réaliste: 3 mêlée + 3 à distance + 1 canon (toutes les 3 vagues)
+    waveCountRef.current++
+    const hasCannonMinion = waveCountRef.current % 3 === 0
 
+    const waveComposition: CreepType[] = [
+      'melee', 'melee', 'melee', // 3 mêlée
+      'ranged', 'ranged', 'ranged', // 3 à distance
+    ]
+
+    if (hasCannonMinion) {
+      waveComposition.push('cannon') // Canon toutes les 3 vagues
+    }
+
+    const spacing = 90 // Espacement augmenté pour plus de visibilité
+    const startX = CANVAS_WIDTH - LANE_START_X + 100 // Spawn à DROITE
+
+    waveComposition.forEach((type, i) => {
       const stats = CREEP_STATS[type]
-      const spacing = 60
-      const startX = LANE_START_X - 100
+      const spawnX = startX + i * spacing
+      const spawnY = getLaneY(spawnX)
 
       newCreeps.push({
         id: creepIdRef.current++,
         type,
-        position: { x: startX - i * spacing, y: LANE_Y },
+        position: { x: spawnX, y: spawnY },
         maxHealth: stats.maxHealth,
         currentHealth: stats.maxHealth,
         goldValue: stats.goldValue,
         moving: true,
-        targetX: LANE_START_X + 200 + Math.random() * 200,
+        targetX: PLAYER_START_X + 100 + Math.random() * 100, // Se déplace vers la GAUCHE
       })
-    }
+    })
 
     creepsRef.current = [...creepsRef.current, ...newCreeps]
-  }, [getDifficultyConfig])
+  }, [])
 
   const updateCreeps = useCallback(
     (deltaTime: number) => {
       const config = getDifficultyConfig()
 
       creepsRef.current = creepsRef.current.filter((creep) => {
-        // Move creep towards target
-        if (creep.moving && creep.position.x < creep.targetX) {
-          creep.position.x += 1 * deltaTime * 60
-          if (creep.position.x >= creep.targetX) {
+        // Move creep towards target (DROITE vers GAUCHE)
+        if (creep.moving && creep.position.x > creep.targetX) {
+          creep.position.x -= 0.5 * deltaTime * 60 // Vitesse réduite pour meilleure visibilité
+          // Update Y position to follow the angled lane
+          creep.position.y = getLaneY(creep.position.x)
+
+          if (creep.position.x <= creep.targetX) {
             creep.moving = false
           }
         }
@@ -383,10 +441,6 @@ export function LastHitTrainer({
     const now = Date.now()
     const timeSinceLastAttack = (now - lastAttackTimeRef.current) / 1000
 
-    if (timeSinceLastAttack < 1 / championStats.attackSpeed) {
-      return // On cooldown
-    }
-
     const playerPos = playerPosRef.current
 
     // Find creeps in range
@@ -397,13 +451,45 @@ export function LastHitTrainer({
       return distance <= championStats.attackRange
     })
 
-    if (creepsInRange.length > 0) {
-      // Attack closest creep
-      const closest = creepsInRange.sort(
-        (a, b) =>
-          Math.abs(a.position.x - playerPos.x) - Math.abs(b.position.x - playerPos.x)
-      )[0]
+    // Prioritize targeted creep if in range, otherwise get closest
+    let targetCreep: Creep | null = null
 
+    if (targetedCreepIdRef.current !== null) {
+      // Check if targeted creep is in range
+      targetCreep = creepsInRange.find((c) => c.id === targetedCreepIdRef.current) || null
+
+      // If targeted creep is not in range or dead, clear target
+      if (!targetCreep) {
+        targetedCreepIdRef.current = null
+      }
+    }
+
+    // If no valid target, get closest creep
+    const closest = targetCreep || (creepsInRange.length > 0
+      ? creepsInRange.sort(
+          (a, b) =>
+            Math.abs(a.position.x - playerPos.x) - Math.abs(b.position.x - playerPos.x)
+        )[0]
+      : null)
+
+    // Always spawn attack animation when clicking (visual feedback)
+    if (closest) {
+      // Spawn attack animation towards target
+      spawnAttackAnimation(playerPos.x, playerPos.y, closest.position.x, closest.position.y, championType)
+    } else {
+      // No target: show animation in default direction (to the right)
+      const defaultTargetX = playerPos.x + championStats.attackRange
+      const defaultTargetY = playerPos.y
+      spawnAttackAnimation(playerPos.x, playerPos.y, defaultTargetX, defaultTargetY, championType)
+    }
+
+    // Check cooldown AFTER spawning animation (so animation always shows)
+    if (timeSinceLastAttack < 1 / championStats.attackSpeed) {
+      return // On cooldown - animation shown but no damage dealt
+    }
+
+    if (closest) {
+      // Deal damage to closest creep
       closest.currentHealth -= championStats.attackDamage
 
       // Check for last hit
@@ -444,7 +530,7 @@ export function LastHitTrainer({
 
       lastAttackTimeRef.current = now
     }
-  }, [championType, spawnParticles, spawnFloatingText, stats.combo])
+  }, [championType, spawnParticles, spawnFloatingText, spawnAttackAnimation, stats.combo])
 
   const gameLoop = useCallback(() => {
     const canvas = canvasRef.current
@@ -477,15 +563,18 @@ export function LastHitTrainer({
     // Update animations
     updateParticles(deltaTime)
     updateFloatingTexts(deltaTime)
+    updateAttackAnimations(deltaTime)
 
-    // Update player position
+    // Update player position - free movement
     if (joystickActiveRef.current) {
       const championStats = CHAMPION_STATS[championType]
       const moveSpeed = championStats.movementSpeed
+
+      // Free movement in both X and Y
       playerPosRef.current.x += joystickPosRef.current.x * moveSpeed
       playerPosRef.current.y += joystickPosRef.current.y * moveSpeed
 
-      // Keep in bounds
+      // Keep in canvas bounds
       playerPosRef.current.x = Math.max(50, Math.min(CANVAS_WIDTH - 50, playerPosRef.current.x))
       playerPosRef.current.y = Math.max(50, Math.min(CANVAS_HEIGHT - 50, playerPosRef.current.y))
     }
@@ -494,34 +583,115 @@ export function LastHitTrainer({
     ctx.fillStyle = '#0f172a'
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
 
-    // Draw lane
-    ctx.fillStyle = '#1e293b'
-    ctx.fillRect(0, LANE_Y - 80, CANVAS_WIDTH, 160)
-    ctx.strokeStyle = '#475569'
-    ctx.lineWidth = 2
+    // Draw angled lane (top-left to bottom-right at ~37.5 degrees)
+    const laneWidth = 160
+    const laneStartY = getLaneY(0)
+    const laneEndY = getLaneY(CANVAS_WIDTH)
+
+    ctx.save()
+
+    // Draw lane background (darker area)
+    ctx.fillStyle = '#1a1f2e'
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
+
+    // Draw the lane itself
+    ctx.fillStyle = '#2d3748'
     ctx.beginPath()
-    ctx.moveTo(0, LANE_Y - 80)
-    ctx.lineTo(CANVAS_WIDTH, LANE_Y - 80)
-    ctx.moveTo(0, LANE_Y + 80)
-    ctx.lineTo(CANVAS_WIDTH, LANE_Y + 80)
+    ctx.moveTo(0, laneStartY - laneWidth / 2)
+    ctx.lineTo(CANVAS_WIDTH, laneEndY - laneWidth / 2)
+    ctx.lineTo(CANVAS_WIDTH, laneEndY + laneWidth / 2)
+    ctx.lineTo(0, laneStartY + laneWidth / 2)
+    ctx.closePath()
+    ctx.fill()
+
+    // Draw lane center line (dashed)
+    ctx.strokeStyle = '#4a5568'
+    ctx.lineWidth = 2
+    ctx.setLineDash([20, 15])
+    ctx.beginPath()
+    ctx.moveTo(0, laneStartY)
+    ctx.lineTo(CANVAS_WIDTH, laneEndY)
     ctx.stroke()
+    ctx.setLineDash([])
+
+    // Draw lane borders (bright for visibility)
+    ctx.strokeStyle = '#64748b'
+    ctx.lineWidth = 4
+    ctx.beginPath()
+    ctx.moveTo(0, laneStartY - laneWidth / 2)
+    ctx.lineTo(CANVAS_WIDTH, laneEndY - laneWidth / 2)
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.moveTo(0, laneStartY + laneWidth / 2)
+    ctx.lineTo(CANVAS_WIDTH, laneEndY + laneWidth / 2)
+    ctx.stroke()
+
+    // Draw distance markers along the lane
+    for (let i = 1; i < 10; i++) {
+      const markerX = (CANVAS_WIDTH * i) / 10
+      const markerY = getLaneY(markerX)
+      ctx.fillStyle = '#374151'
+      ctx.fillRect(markerX - 1, markerY - laneWidth / 2, 2, laneWidth)
+    }
+
+    ctx.restore()
+
+    // Draw allied tower (left side)
+    const towerY = getLaneY(TOWER_ALLY_X)
+    ctx.fillStyle = '#3b82f6' // Blue for allied tower
+    ctx.font = 'bold 40px Arial'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText('🏰', TOWER_ALLY_X, towerY)
+
+    // Tower health indicator
+    ctx.fillStyle = '#10b981'
+    ctx.fillRect(TOWER_ALLY_X - 20, towerY - 35, 40, 5)
+    ctx.strokeStyle = '#059669'
+    ctx.strokeRect(TOWER_ALLY_X - 20, towerY - 35, 40, 5)
 
     // Draw creeps
     creepsRef.current.forEach((creep) => {
       const healthPercent = creep.currentHealth / creep.maxHealth
 
-      // Creep body
-      ctx.fillStyle =
-        creep.type === 'cannon' ? '#a855f7' : creep.type === 'ranged' ? '#3b82f6' : '#10b981'
-      ctx.beginPath()
-      ctx.arc(creep.position.x, creep.position.y, CREEP_RADIUS, 0, Math.PI * 2)
-      ctx.fill()
+      // Creep body with emojis
+      ctx.font = 'bold 32px Arial'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
 
-      // Health bar
+      let creepEmoji = '⚔️'
+      if (creep.type === 'melee') {
+        creepEmoji = '⚔️' // Épée pour mêlée
+      } else if (creep.type === 'ranged') {
+        creepEmoji = '🏹' // Arc pour à distance
+      } else if (creep.type === 'cannon') {
+        creepEmoji = '🛡️' // Bouclier pour canon (plus tanky)
+      }
+
+      ctx.fillText(creepEmoji, creep.position.x, creep.position.y)
+
+      // Target indicator (circle around targeted creep)
+      if (targetedCreepIdRef.current === creep.id) {
+        ctx.strokeStyle = '#fbbf24' // Gold color for target
+        ctx.lineWidth = 3
+        ctx.beginPath()
+        ctx.arc(creep.position.x, creep.position.y, 25, 0, Math.PI * 2)
+        ctx.stroke()
+
+        // Pulsing effect
+        const pulseSize = 28 + Math.sin(now / 150) * 3
+        ctx.strokeStyle = 'rgba(251, 191, 36, 0.5)'
+        ctx.lineWidth = 2
+        ctx.beginPath()
+        ctx.arc(creep.position.x, creep.position.y, pulseSize, 0, Math.PI * 2)
+        ctx.stroke()
+      }
+
+      // Health bar (positioned above emoji)
       const barWidth = 40
       const barHeight = 5
       const barX = creep.position.x - barWidth / 2
-      const barY = creep.position.y - CREEP_RADIUS - 10
+      const barY = creep.position.y - 25 // Adjusted for emoji height
 
       ctx.fillStyle = '#334155'
       ctx.fillRect(barX, barY, barWidth, barHeight)
@@ -553,29 +723,29 @@ export function LastHitTrainer({
         }
       }
 
-      // Gold value
+      // Gold value (positioned below emoji)
       ctx.fillStyle = '#fbbf24'
       ctx.font = 'bold 12px Arial'
       ctx.textAlign = 'center'
-      ctx.fillText(`${creep.goldValue}g`, creep.position.x, creep.position.y + CREEP_RADIUS + 15)
+      ctx.fillText(`${creep.goldValue}g`, creep.position.x, creep.position.y + 25)
     })
 
-    // Draw enemy (invincible)
+    // Draw enemy turret (right side, invincible)
     const enemy = enemyRef.current
-    ctx.fillStyle = '#dc2626'
-    ctx.beginPath()
-    ctx.arc(enemy.position.x, enemy.position.y, ENEMY_RADIUS, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.strokeStyle = '#fca5a5'
-    ctx.lineWidth = 3
-    ctx.stroke()
+    ctx.font = 'bold 40px Arial'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillStyle = '#dc2626' // Red for enemy
+    ctx.fillText('🔴', enemy.position.x, enemy.position.y)
 
-    // Draw player
+    // Draw player with emoji based on champion type
     const player = playerPosRef.current
-    ctx.fillStyle = championType === 'melee' ? '#8b5cf6' : '#06b6d4'
-    ctx.beginPath()
-    ctx.arc(player.x, player.y, PLAYER_RADIUS, 0, Math.PI * 2)
-    ctx.fill()
+    ctx.font = 'bold 36px Arial'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+
+    const championEmoji = championType === 'melee' ? '🗡️' : '🏹'
+    ctx.fillText(championEmoji, player.x, player.y)
 
     // Attack range indicator
     ctx.strokeStyle = 'rgba(139, 92, 246, 0.3)'
@@ -605,6 +775,65 @@ export function LastHitTrainer({
       ctx.restore()
     }
 
+    // Draw attack animations
+    attackAnimationsRef.current.forEach((attack) => {
+      ctx.save()
+      ctx.globalAlpha = attack.life / attack.maxLife
+
+      if (attack.type === 'melee') {
+        // Melee: Draw slash effect arc
+        const progress = 1 - attack.life / attack.maxLife
+        const angle = Math.PI * progress
+        const radius = 40
+
+        ctx.strokeStyle = championType === 'melee' ? '#8b5cf6' : '#06b6d4'
+        ctx.lineWidth = 6
+        ctx.lineCap = 'round'
+        ctx.beginPath()
+        ctx.arc(
+          attack.toX,
+          attack.toY,
+          radius,
+          -Math.PI / 4 + angle - Math.PI / 2,
+          -Math.PI / 4 + angle + Math.PI / 2
+        )
+        ctx.stroke()
+
+        // Add glow effect
+        ctx.strokeStyle = '#ffffff'
+        ctx.lineWidth = 2
+        ctx.stroke()
+      } else {
+        // Ranged: Draw projectile
+        const gradient = ctx.createRadialGradient(
+          attack.currentX,
+          attack.currentY,
+          0,
+          attack.currentX,
+          attack.currentY,
+          8
+        )
+        gradient.addColorStop(0, '#06b6d4')
+        gradient.addColorStop(0.5, '#0891b2')
+        gradient.addColorStop(1, 'transparent')
+
+        ctx.fillStyle = gradient
+        ctx.beginPath()
+        ctx.arc(attack.currentX, attack.currentY, 8, 0, Math.PI * 2)
+        ctx.fill()
+
+        // Add trail
+        ctx.strokeStyle = 'rgba(6, 182, 212, 0.5)'
+        ctx.lineWidth = 3
+        ctx.beginPath()
+        ctx.moveTo(attack.fromX, attack.fromY)
+        ctx.lineTo(attack.currentX, attack.currentY)
+        ctx.stroke()
+      }
+
+      ctx.restore()
+    })
+
     // Draw particles
     particlesRef.current.forEach((particle) => {
       ctx.save()
@@ -631,7 +860,7 @@ export function LastHitTrainer({
     })
 
     animationFrameRef.current = requestAnimationFrame(gameLoop)
-  }, [duration, championType, getDifficultyConfig, spawnWave, updateCreeps, updateEnemy, updateParticles, updateFloatingTexts, spawnParticles, spawnFloatingText, stats.combo])
+  }, [duration, championType, getDifficultyConfig, spawnWave, updateCreeps, updateEnemy, updateParticles, updateFloatingTexts, updateAttackAnimations, spawnParticles, spawnFloatingText, stats.combo])
 
   const startGame = useCallback(async () => {
     // Enter fullscreen and lock landscape
@@ -655,13 +884,15 @@ export function LastHitTrainer({
     }
 
     setGameState('playing')
-    playerPosRef.current = { x: PLAYER_START_X, y: LANE_Y }
+    playerPosRef.current = { x: PLAYER_START_X, y: getLaneY(PLAYER_START_X) }
     creepsRef.current = []
     joystickPosRef.current = { x: 0, y: 0 }
     joystickActiveRef.current = false
     creepIdRef.current = 0
+    waveCountRef.current = 0
+    targetedCreepIdRef.current = null // Reset targeted creep
     enemyRef.current = {
-      position: { x: ENEMY_START_X, y: LANE_Y },
+      position: { x: ENEMY_START_X, y: getLaneY(ENEMY_START_X) },
       targetCreepId: null,
       attackCooldown: 0,
       lastAttackTime: 0,
@@ -685,6 +916,7 @@ export function LastHitTrainer({
     particlesRef.current = []
     floatingTextsRef.current = []
     healthBarFlashRef.current.clear()
+    attackAnimationsRef.current = []
 
     // Spawn first wave immediately
     setTimeout(() => {
@@ -832,6 +1064,44 @@ export function LastHitTrainer({
     joystickPosRef.current = { x: 0, y: 0 }
   }, [])
 
+  // Canvas click handler for targeting creeps
+  const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if (gameStateRef.current !== 'playing') return
+
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const rect = canvas.getBoundingClientRect()
+    const scaleX = CANVAS_WIDTH / rect.width
+    const scaleY = CANVAS_HEIGHT / rect.height
+
+    let clientX, clientY
+    if ('touches' in e) {
+      if (e.touches.length === 0) return
+      clientX = e.touches[0].clientX
+      clientY = e.touches[0].clientY
+    } else {
+      clientX = e.clientX
+      clientY = e.clientY
+    }
+
+    const canvasX = (clientX - rect.left) * scaleX
+    const canvasY = (clientY - rect.top) * scaleY
+
+    // Check if clicked on a creep (using emoji size ~32px = ~16px radius)
+    const clickRadius = 20
+    const clickedCreep = creepsRef.current.find((creep) => {
+      const distance = Math.sqrt(
+        Math.pow(creep.position.x - canvasX, 2) + Math.pow(creep.position.y - canvasY, 2)
+      )
+      return distance <= clickRadius
+    })
+
+    if (clickedCreep) {
+      targetedCreepIdRef.current = clickedCreep.id
+    }
+  }, [])
+
   return (
     <div ref={containerRef} className={mergeThemeClasses('relative w-full h-full', className)}>
       {/* Canvas - Full screen when playing, hidden when idle */}
@@ -843,6 +1113,8 @@ export function LastHitTrainer({
             height={CANVAS_HEIGHT}
             className="w-full h-full object-contain bg-slate-950"
             style={{ touchAction: 'none' }}
+            onClick={handleCanvasClick}
+            onTouchStart={handleCanvasClick}
           />
         </div>
       )}
